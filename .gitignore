@@ -1,5 +1,5 @@
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -9,17 +9,18 @@
 !.yarn/versions
 
 # testing
-/coverage
-/test-results
-/playwright-report
-/blob-report
+coverage/
+test-results/
+playwright-report/
+blob-report/
 
-# next.js
-/.next/
-/out/
+# next.js (legacy)
+.next/
+out/
 
-# production
-/build
+# build output
+dist/
+build/
 
 # misc
 .DS_Store
@@ -41,3 +42,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# prisma
+packages/server/prisma/*.db
+
+# IDE
+.idea/
+.vscode/

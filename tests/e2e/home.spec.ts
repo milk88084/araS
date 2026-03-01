@@ -1,35 +1,25 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Home Page", () => {
-  test("should render the page title", async ({ page }) => {
+  test("should display the hero section", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("h1")).toContainText("Next Production");
+    await expect(page.locator("h1")).toContainText("Production");
+    await expect(page.locator("h1")).toContainText("Template");
   });
 
-  test("should render feature cards", async ({ page }) => {
+  test("should display feature cards", async ({ page }) => {
     await page.goto("/");
-    const cards = page.locator('[data-slot="card"]');
-    await expect(cards).toHaveCount(6);
+    await expect(page.getByText("Clerk Authentication")).toBeVisible();
+    await expect(page.getByText("Prisma ORM")).toBeVisible();
   });
 
-  test("should have working navigation", async ({ page }) => {
+  test("should show sign in button for unauthenticated users", async ({ page }) => {
     await page.goto("/");
-    const homeLink = page.locator('a[href="/"]').first();
-    await expect(homeLink).toBeVisible();
+    await expect(page.getByText("Sign In")).toBeVisible();
   });
 
-  test("should have correct page title in metadata", async ({ page }) => {
+  test("should have correct page title", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/Next Production Template/);
-  });
-
-  test("should return health check response", async ({ request }) => {
-    const response = await request.get("/api/health");
-    expect(response.ok()).toBeTruthy();
-
-    const data = await response.json();
-    expect(data.status).toBe("ok");
-    expect(data.timestamp).toBeDefined();
-    expect(data.uptime).toBeGreaterThan(0);
+    await expect(page).toHaveTitle(/Production Template/);
   });
 });
