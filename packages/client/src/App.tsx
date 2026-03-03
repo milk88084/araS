@@ -4,8 +4,10 @@ import { Header } from "./components/layout/Header";
 import { Footer } from "./components/layout/Footer";
 import { HomePage } from "./pages/HomePage";
 import { PostsPage } from "./pages/PostsPage";
+import { isClerkEnabled } from "./lib/clerk";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  if (!isClerkEnabled) return <>{children}</>;
   return (
     <>
       <SignedIn>{children}</SignedIn>

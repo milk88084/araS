@@ -2,6 +2,7 @@ import { SignedIn, SignedOut, SignInButton } from "@clerk/clerk-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
+import { isClerkEnabled } from "@/lib/clerk";
 
 const features = [
   {
@@ -44,16 +45,24 @@ export function HomePage() {
           and comprehensive testing. Clone and start shipping.
         </p>
         <div className="flex gap-4">
-          <SignedOut>
-            <SignInButton mode="modal">
-              <Button size="lg">Get Started</Button>
-            </SignInButton>
-          </SignedOut>
-          <SignedIn>
+          {isClerkEnabled ? (
+            <>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <Button size="lg">Get Started</Button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <Link to="/posts">
+                  <Button size="lg">Go to Posts</Button>
+                </Link>
+              </SignedIn>
+            </>
+          ) : (
             <Link to="/posts">
               <Button size="lg">Go to Posts</Button>
             </Link>
-          </SignedIn>
+          )}
           <a href="https://github.com" target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="lg">
               GitHub

@@ -1,5 +1,6 @@
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 import { Link } from "react-router-dom";
+import { isClerkEnabled } from "@/lib/clerk";
 
 export function Header() {
   return (
@@ -16,27 +17,42 @@ export function Header() {
             >
               Home
             </Link>
-            <SignedIn>
+            {isClerkEnabled ? (
+              <SignedIn>
+                <Link
+                  to="/posts"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Posts
+                </Link>
+              </SignedIn>
+            ) : (
               <Link
                 to="/posts"
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
                 Posts
               </Link>
-            </SignedIn>
+            )}
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-                Sign In
-              </button>
-            </SignInButton>
-          </SignedOut>
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
+          {isClerkEnabled ? (
+            <>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
+                    Sign In
+                  </button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton afterSignOutUrl="/" />
+              </SignedIn>
+            </>
+          ) : (
+            <span className="text-xs text-muted-foreground">Clerk not configured</span>
+          )}
         </div>
       </div>
     </header>
