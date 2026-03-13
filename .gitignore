@@ -49,3 +49,15 @@ packages/server/prisma/*.db
 # IDE
 .idea/
 .vscode/
+
+# Claude Code local settings
+.claude/
+
+# Package manager lock file conflicts (pnpm project — ignore npm/yarn lock files)
+package-lock.json
+yarn.lock
+
+# Windows
+Thumbs.db
+Desktop.ini
+ehthumbs.db
