@@ -168,8 +168,9 @@ Configured via `headers()`:
 
 ### CORS update
 
-- In development: allow `http://localhost:5173` (Vite) + `http://localhost:3000` (Next.js dev)
-- In production: allow `ALLOWED_ORIGIN` env var
+- Preserve existing env var name `CORS_ORIGIN` (already used in `packages/server/src/lib/env.ts`)
+- In development: default `CORS_ORIGIN` to `http://localhost:5173,http://localhost:3000` (Vite + Next.js dev)
+- In production: `CORS_ORIGIN` set in deployment environment
 
 ---
 
@@ -194,6 +195,7 @@ export { Input } from "./components/input";
 - **No build step** — `exports` field points to `.tsx` source files directly (same as `packages/shared`)
 - Tailwind CSS peer dependency — consuming app (`apps/web`) provides Tailwind, not the package itself
 - `package.json` name: `@repo/ui`
+- **`apps/web`-only dependency** — `apps/api` must never depend on `@repo/ui`. The package uses JSX and React, and `apps/api` has no JSX transform configured. `packages/ui/package.json` declares `react` as a `peerDependency` (not `dependency`) to enforce this boundary.
 
 ### shadcn/ui installation
 
@@ -278,8 +280,9 @@ tsconfig.base.json (root, exists today — kept as canonical base)
 
 ### Secrets management
 
-- All secrets via `.env` (root level, Vite/Next.js both read from project root via `envDir`)
-- `.env.example` updated with new vars: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `NEXT_PUBLIC_API_URL`
+- Root `.env` file is the developer's single source of truth. **Next.js 15 does not support a custom `envDir`** — it always reads from the app directory (`apps/web/.env`). To avoid maintaining duplicate files, use a root-level `.env` that is **symlinked** into `apps/web/.env` and `apps/api/.env` via a `scripts/setup-env.sh` script run once after clone (added to `pnpm prepare`).
+- Alternatively, a `turbo.json` `globalDotEnv` entry can load the root `.env` for all turbo tasks, but symlinks are simpler and more portable.
+- `.env.example` updated with new vars: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `NEXT_PUBLIC_API_URL`, `CORS_ORIGIN`
 - `.env` in `.gitignore` (already configured)
 
 ---
@@ -363,6 +366,9 @@ Post-tool-use hooks to enforce quality gates during AI-assisted development:
 5. Move `packages/server` → `apps/api` (rename, update imports)
 6. Create `apps/web` as Next.js 15 app (replaces `packages/client`)
 7. Migrate React components from `packages/client/src` → `apps/web/app` + `apps/web/components`
+   - `react-router-dom` routes → App Router file-system routes (`app/(dashboard)/page.tsx` etc.)
+   - `ProtectedRoute` wrapper → `(dashboard)/layout.tsx` auth guard using `auth()` from `@clerk/nextjs/server`
+   - Tailwind 3 CSS variable tokens (`hsl(var(...))` pattern) → Tailwind 4 `@theme` block CSS variables (non-trivial, treat as a dedicated migration step)
 8. Write `turbo.json`
 9. Update root `package.json` scripts to use `turbo run`
 10. Update `.npmrc`
