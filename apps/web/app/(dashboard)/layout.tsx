@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { isClerkEnabled } from "../../lib/clerk.js";
-import { Header } from "../../components/layout/header.js";
-import { Footer } from "../../components/layout/footer.js";
+import { isClerkEnabled } from "../../lib/clerk";
+import { Header } from "../../components/layout/header";
+import { Footer } from "../../components/layout/footer";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   if (isClerkEnabled) {

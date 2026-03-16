@@ -2,9 +2,9 @@ import Link from "next/link";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { Button } from "@repo/ui";
 import { Card, CardHeader, CardTitle, CardDescription } from "@repo/ui";
-import { Header } from "../components/layout/header.js";
-import { Footer } from "../components/layout/footer.js";
-import { isClerkEnabled } from "../lib/clerk.js";
+import { Header } from "../components/layout/header";
+import { Footer } from "../components/layout/footer";
+import { isClerkEnabled } from "../lib/clerk";
 
 const features = [
   {

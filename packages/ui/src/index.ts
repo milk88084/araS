@@ -1,3 +1,3 @@
-export { Button, buttonVariants } from "./components/button.js";
-export type { ButtonProps } from "./components/button.js";
-export { Card, CardHeader, CardTitle, CardDescription, CardContent } from "./components/card.js";
+export { Button, buttonVariants } from "./components/button";
+export type { ButtonProps } from "./components/button";
+export { Card, CardHeader, CardTitle, CardDescription, CardContent } from "./components/card";

@@ -5,7 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import type { Post } from "@repo/shared";
 import { Button } from "@repo/ui";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@repo/ui";
-import { isClerkEnabled } from "../../../lib/clerk.js";
+import { isClerkEnabled } from "../../../lib/clerk";
 
 export default function PostsPage() {
   const { getToken } = useAuth();
