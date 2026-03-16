@@ -73,7 +73,6 @@ git commit -m "build(turbo): install turborepo and update root scripts"
 ```json
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDotEnv": [".env"],
   "remoteCache": {},
   "tasks": {
     "build": {
@@ -597,9 +596,21 @@ git commit -m "feat(ui): add Button and Card components to shared ui package"
 cp -r packages/server apps/api
 ```
 
-- [ ] **Step 2a: Update apps/api/package.json — rename package**
+- [ ] **Step 2a: Update apps/api/package.json — rename package and update dev script for env loading**
 
 Change `"name"` from `"@repo/server"` to `"@repo/api"`.
+
+> **Note on env loading:** `turbo.json globalDotEnv` is not supported in turbo 2.x. Instead, `apps/api` must load the root `.env` itself. Add `dotenv-cli` to devDependencies and update the `dev` script:
+
+```json
+"dev": "dotenv -e ../../.env -- tsx watch src/index.ts"
+```
+
+Also add to `devDependencies`:
+
+```json
+"dotenv-cli": "^7.4.0"
+```
 
 - [ ] **Step 2b: Update CORS default in apps/api/src/lib/env.ts**
 
@@ -694,7 +705,7 @@ git commit -m "feat(api): create apps/api by moving packages/server (rename + CO
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 3000 --env-file ../../.env",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
