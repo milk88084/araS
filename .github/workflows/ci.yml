@@ -114,7 +114,7 @@ jobs:
       - run: pnpm db:generate
       - run: pnpm turbo run build
         env:
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_your_publishable_key
           NEXT_PUBLIC_API_URL: http://localhost:3001
           CLERK_SECRET_KEY: sk_test_ci
 
