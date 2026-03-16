@@ -128,7 +128,7 @@ apps/web/
 ├── lib/                  # Utilities, API client (calls apps/api)
 ├── middleware.ts          # Clerk auth + route protection
 ├── next.config.ts        # Security headers, rewrites
-├── tailwind.config.ts    # (if needed alongside CSS config)
+├── globals.css           # @import "tailwindcss"; @theme { ... } (Tailwind 4 config-in-CSS)
 └── package.json          # @repo/web
 ```
 
@@ -280,8 +280,8 @@ tsconfig.base.json (root, exists today — kept as canonical base)
 
 ### Secrets management
 
-- Root `.env` file is the developer's single source of truth. **Next.js 15 does not support a custom `envDir`** — it always reads from the app directory (`apps/web/.env`). To avoid maintaining duplicate files, use a root-level `.env` that is **symlinked** into `apps/web/.env` and `apps/api/.env` via a `scripts/setup-env.sh` script run once after clone (added to `pnpm prepare`).
-- Alternatively, a `turbo.json` `globalDotEnv` entry can load the root `.env` for all turbo tasks, but symlinks are simpler and more portable.
+- Root `.env` file is the developer's single source of truth. **Next.js 15 does not support a custom `envDir`** — it always reads from the app directory (`apps/web/.env`). To avoid maintaining duplicate files, use `turbo.json` `globalDotEnv: [".env"]` — Turborepo loads the root `.env` into the environment of every task, which Next.js and Express both read from `process.env`. This is the correct cross-platform approach (no symlinks, no shell scripts, works on Windows without administrator privileges).
+- The root `.env` is the only file developers need to edit. `apps/web` and `apps/api` do not have their own `.env` files.
 - `.env.example` updated with new vars: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `NEXT_PUBLIC_API_URL`, `CORS_ORIGIN`
 - `.env` in `.gitignore` (already configured)
 
@@ -296,9 +296,9 @@ tsconfig.base.json (root, exists today — kept as canonical base)
 ### Changes
 
 - Rename `container_name` from `repo-postgres` to match new project naming
-- Add health check already present — keep as-is
+- Health check already present — keep as-is
 - No app containers in `docker-compose.yml` for local dev (devs run apps via `turbo dev`)
-- Add a `docker-compose.prod.yml` for full production deployment with `apps/web` and `apps/api` containers
+- Production multi-container compose is **out of scope** for this migration (see Out of Scope section)
 
 ---
 
@@ -386,4 +386,4 @@ Post-tool-use hooks to enforce quality gates during AI-assisted development:
 - Migrating test coverage to Playwright E2E for all pages (existing unit tests are migrated)
 - Adding a new database model or business logic
 - Internationalization (i18n)
-- Deployment configuration beyond `docker-compose.prod.yml`
+- Production Docker multi-container setup (`docker-compose.prod.yml`) — separate task after migration is stable
