@@ -67,7 +67,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
-      - run: pnpm turbo run test -- --coverage
+      - run: pnpm turbo run test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/production_template_test
           CLERK_SECRET_KEY: sk_test_ci
