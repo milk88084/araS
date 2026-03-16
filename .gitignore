@@ -52,7 +52,6 @@ packages/server/prisma/*.db
 
 # Claude Code local settings (settings.json is shared; local overrides are not)
 .claude/settings.local.json
-.claude/commands/
 
 # Package manager lock file conflicts (pnpm project — ignore npm/yarn lock files)
 package-lock.json
