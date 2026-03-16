@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Slash Commands
+
+| Command     | Description                                                                 |
+| ----------- | --------------------------------------------------------------------------- |
+| `/fix-ci`   | Diagnose and fix the latest failing GitHub Actions CI run automatically     |
+| `/ship`     | Full delivery pipeline: lint → stage → commit → push with safety guardrails |
+| `/simplify` | Review recently changed code for quality and efficiency, then fix issues    |
+
 ## Commands
 
 ```bash
