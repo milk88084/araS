@@ -50,8 +50,9 @@ packages/server/prisma/*.db
 .idea/
 .vscode/
 
-# Claude Code local settings
+# Claude Code local settings (allow shared settings.json)
 .claude/
+!.claude/settings.json
 
 # Package manager lock file conflicts (pnpm project — ignore npm/yarn lock files)
 package-lock.json
