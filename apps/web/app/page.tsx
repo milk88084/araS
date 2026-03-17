@@ -43,7 +43,7 @@ export default function HomePage() {
         <div className="container mx-auto max-w-screen-xl px-4 py-16">
           <section className="flex flex-col items-center gap-6 pb-16 text-center">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              Production
+              Production Template v1.0.0
               <br />
               <span className="text-muted-foreground">Template</span>
             </h1>
