@@ -13,9 +13,9 @@ test.describe("Home Page", () => {
     await expect(page.getByText("Prisma ORM")).toBeVisible();
   });
 
-  test("should show sign in button for unauthenticated users", async ({ page }) => {
+  test("should show navigation to posts for unauthenticated users", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Sign In")).toBeVisible();
+    await expect(page.getByText("Go to Posts")).toBeVisible();
   });
 
   test("should have correct page title", async ({ page }) => {

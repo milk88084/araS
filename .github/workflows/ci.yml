@@ -91,7 +91,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: pnpm test:e2e
         env:
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_your_publishable_key
       - uses: actions/upload-artifact@v4
         if: always()
         with:
