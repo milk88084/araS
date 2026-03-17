@@ -89,6 +89,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: npx playwright install --with-deps chromium
+      - name: Create .env for E2E webserver
+        run: |
+          printf 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_publishable_key\nCLERK_SECRET_KEY=sk_test_ci\nNEXT_PUBLIC_API_URL=http://localhost:3001\n' > .env
       - run: pnpm test:e2e
         env:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_your_publishable_key
