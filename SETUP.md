@@ -1,93 +1,138 @@
-# Project Setup Guide
+# Setup Guide
 
-This guide will walk you through the steps to get the `next-production-template` project up and running on your local development machine.
-
----
-
-## 1. Prerequisites
-
-Before you begin, ensure you have the following installed:
-
-- **Node.js**: `v20.0.0` or higher.
-- **Pnpm**: `v9.0.0` or higher.
-- **Docker & Docker Compose**: For running the PostgreSQL database.
-- **Git**: For version control.
+Clone this repo and have the full stack running in about 10 minutes.
 
 ---
 
-## 2. Initial Setup
+## Prerequisites
 
-### Step 1: Clone the Repository
+| Tool           | Version | Install                                        |
+| -------------- | ------- | ---------------------------------------------- |
+| Node.js        | ≥ 20    | https://nodejs.org                             |
+| pnpm           | ≥ 9     | `npm install -g pnpm`                          |
+| Docker Desktop | any     | https://www.docker.com/products/docker-desktop |
+| Git            | any     | https://git-scm.com                            |
+
+---
+
+## Step 1 — Clone and Install
+
 ```bash
-git clone <repository-url>
+git clone <repo-url>
 cd next-production-template
-```
-
-### Step 2: Install Dependencies
-This project uses `pnpm` monorepo. Run the following command from the root directory:
-```bash
+git checkout dev
 pnpm install
 ```
 
-### Step 3: Configure Environment Variables
-Copy the example environment file and update it with your local settings (e.g., Clerk API keys).
+---
+
+## Step 2 — Configure Environment Variables
+
+Copy the example file:
+
 ```bash
 cp .env.example .env
 ```
-> **Note:** Open `.env` and ensure the `CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY` are correctly set for your local development.
+
+Open `.env`. The only values you **must** fill in to run the app are the **Clerk keys**.
+
+### Getting Clerk Keys (free)
+
+1. Go to [https://clerk.com](https://clerk.com) and create a free account
+2. Create a new application (choose "Email" or "Google" sign-in)
+3. Go to **API Keys** in your Clerk dashboard
+4. Copy the two keys into your `.env`:
+
+```env
+CLERK_SECRET_KEY=<your-clerk-secret-key>                # "Secret key" from Clerk dashboard
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<your-publishable-key>  # "Publishable key" from Clerk dashboard
+```
+
+> **Skip Clerk entirely?** Leave the keys as the placeholder values from `.env.example`. The app will run without auth — all routes will be accessible without signing in.
+
+### Other Variables (already set for local dev)
+
+| Variable              | Default value                                                       | Change?                              |
+| --------------------- | ------------------------------------------------------------------- | ------------------------------------ |
+| `DATABASE_URL`        | `postgresql://postgres:postgres@localhost:5434/production_template` | Only if you use a different database |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:3001`                                             | No                                   |
+| `CORS_ORIGIN`         | `http://localhost:5173,http://localhost:3000`                       | No                                   |
+| `PORT`                | `3001`                                                              | No                                   |
 
 ---
 
-## 3. Infrastructure & Database
+## Step 3 — Start the Database
 
-### Step 1: Start PostgreSQL via Docker
-The project includes a `docker-compose.yml` for the database.
 ```bash
 pnpm docker:up
 ```
 
-### Step 2: Initialize Prisma
-Once the database is running, generate the Prisma client and push the schema:
-```bash
-pnpm db:generate
-pnpm db:push
-```
-*Alternatively, use `pnpm db:migrate` if you want to apply existing migrations.*
+This starts a PostgreSQL 16 container on port **5434**.
+
+> Requires Docker Desktop to be running.
 
 ---
 
-## 4. Running the Project
+## Step 4 — Initialize the Database
 
-### Start Everything (Parallel)
-This command will start the `client`, `server`, and `shared` packages in development mode:
+```bash
+pnpm db:generate   # Generate Prisma client
+pnpm db:migrate    # Apply database migrations
+```
+
+---
+
+## Step 5 — Start Development
+
 ```bash
 pnpm dev
 ```
 
-### Start Individual Packages
-- **Frontend only**: `pnpm dev:client` (runs on `http://localhost:5173`)
-- **Backend only**: `pnpm dev:server` (runs on `http://localhost:3001`)
+| App     | URL                   |
+| ------- | --------------------- |
+| Web app | http://localhost:3000 |
+| API     | http://localhost:3001 |
+
+Open http://localhost:3000 — you should see the home page.
 
 ---
 
-## 5. Development Tools & Commands
+## Verify Everything Works
 
-### Code Quality
-- **Linting**: `pnpm lint`
-- **Type Checking**: `pnpm type-check`
-- **Formatting**: `pnpm exec prettier --write .`
+```bash
+# API health check
+curl http://localhost:3001/api/health
+# Expected: {"success":true,"data":{"status":"ok"},...}
 
-### Testing
-- **Unit Tests**: `pnpm test` (Vitest)
-- **E2E Tests**: `pnpm test:e2e` (Playwright)
-
-### Database Management
-- **Prisma Studio**: `pnpm db:studio` (GUI for database)
+# API proxied through Next.js
+curl http://localhost:3000/api/health
+# Expected: same response
+```
 
 ---
 
-## 6. Project Structure Overview
-- `packages/shared`: Shared Zod schemas and TypeScript types.
-- `packages/server`: Express backend with Prisma.
-- `packages/client`: React frontend with Vite and TailwindCSS.
-- `tests/e2e`: End-to-end test suite.
+## Common Issues
+
+**`pnpm docker:up` fails**
+→ Make sure Docker Desktop is running.
+
+**`pnpm db:migrate` fails**
+→ Make sure `pnpm docker:up` ran first and the container is healthy.
+
+**Clerk sign-in doesn't work**
+→ Check that `CLERK_SECRET_KEY` and `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` are set correctly in `.env`. They must match the same Clerk application.
+
+**Port 3000 or 3001 already in use**
+→ Stop the conflicting process or change the port in `apps/web/package.json` (`--port 3000`) and `apps/api/src/lib/env.ts` (`PORT`).
+
+---
+
+## Useful Commands
+
+```bash
+pnpm db:studio          # Open Prisma Studio (database GUI) at http://localhost:5555
+pnpm db:migrate         # Apply new migrations
+pnpm test               # Run all tests
+pnpm type-check         # TypeScript check
+pnpm lint               # Lint all packages
+```

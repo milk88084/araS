@@ -2,13 +2,17 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
     branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
 jobs:
   lint:
@@ -22,7 +26,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
+      - run: pnpm turbo run lint
 
   type-check:
     name: Type Check
@@ -35,7 +39,8 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm type-check
+      - run: pnpm db:generate
+      - run: pnpm turbo run type-check
 
   test:
     name: Unit & Integration Tests
@@ -63,16 +68,18 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
-      - run: pnpm test:coverage
+      - run: pnpm turbo run test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5434/production_template_test
           CLERK_SECRET_KEY: sk_test_ci
           CLERK_PUBLISHABLE_KEY: pk_test_ci
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci
           NODE_ENV: test
 
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -84,13 +91,34 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: pnpm test:e2e
         env:
-          VITE_CLERK_PUBLISHABLE_KEY: pk_test_ci
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_your_publishable_key
+          CLERK_SECRET_KEY: sk_test_ci
+          NEXT_PUBLIC_API_URL: http://localhost:3001
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm turbo run build
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_your_publishable_key
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          CLERK_SECRET_KEY: sk_test_ci
 
   security:
     name: Security Scan

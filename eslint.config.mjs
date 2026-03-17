@@ -1,20 +1,4 @@
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
-import prettier from "eslint-config-prettier";
+import { reactConfig } from "./packages/eslint-config/react.js";
 
-export default [
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
-  prettier,
-  {
-    rules: {
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
-      "@typescript-eslint/no-explicit-any": "error",
-      "prefer-const": "error",
-      "no-console": ["warn", { allow: ["warn", "error"] }],
-    },
-  },
-  {
-    ignores: ["**/dist/", "**/node_modules/", "**/.next/", "**/coverage/"],
-  },
-];
+/** @type {import("typescript-eslint").ConfigArray} */
+export default reactConfig;

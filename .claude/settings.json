@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const f=process.env.CLAUDE_TOOL_INPUT_FILE_PATH||''; const m=f.match(/(apps|packages)\\/[^\\/]+/); if(m){const p=m[0]; try{const n=require('./'+p+'/package.json').name; require('child_process').execSync('pnpm --filter '+n+' type-check',{stdio:'inherit'})}catch(e){}}\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
