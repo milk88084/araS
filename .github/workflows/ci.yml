@@ -1,0 +1,135 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run lint
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm turbo run type-check
+
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: production_template_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm turbo run test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5434/production_template_test
+          CLERK_SECRET_KEY: sk_test_ci
+          CLERK_PUBLISHABLE_KEY: pk_test_ci
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci
+          NODE_ENV: test
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npx playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_your_publishable_key
+          CLERK_SECRET_KEY: sk_test_ci
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm turbo run build
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_your_publishable_key
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          CLERK_SECRET_KEY: sk_test_ci
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level=high
+        continue-on-error: true
