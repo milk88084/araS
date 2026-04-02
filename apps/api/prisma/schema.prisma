@@ -7,45 +7,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  admin
-  editor
-  viewer
-}
-
-enum PostStatus {
-  draft
-  published
-  archived
-}
-
-model User {
+model Asset {
   id        String   @id @default(cuid())
-  clerkId   String   @unique
-  email     String   @unique
-  username  String
-  role      Role     @default(viewer)
-  avatarUrl String?
+  name      String
+  category  String
+  value     Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  posts     Post[]
-
-  @@index([clerkId])
-  @@index([email])
 }
 
-model Post {
-  id        String     @id @default(cuid())
-  title     String     @db.VarChar(200)
-  content   String
-  status    PostStatus @default(draft)
-  authorId  String
-  author    User       @relation(fields: [authorId], references: [id])
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  deletedAt DateTime?
+model Liability {
+  id        String   @id @default(cuid())
+  name      String
+  category  String
+  balance   Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
-  @@index([authorId])
-  @@index([status])
-  @@index([deletedAt])
+model Transaction {
+  id        String   @id @default(cuid())
+  type      String
+  amount    Float
+  category  String
+  source    String
+  note      String?
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+model PortfolioItem {
+  id        String   @id @default(cuid())
+  symbol    String   @unique
+  name      String
+  avgCost   Float
+  shares    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
