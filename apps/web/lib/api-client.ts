@@ -9,7 +9,6 @@ class ApiClient {
       "Content-Type": "application/json",
       ...((options.headers as Record<string, string>) ?? {}),
     };
-
     const response = await fetch(url, { ...options, headers });
     return response.json() as Promise<ApiResponse<T>>;
   }
@@ -19,17 +18,15 @@ class ApiClient {
   }
 
   async post<T>(path: string, body: unknown): Promise<ApiResponse<T>> {
-    return this.request<T>(path, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    return this.request<T>(path, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  async put<T>(path: string, body: unknown): Promise<ApiResponse<T>> {
+    return this.request<T>(path, { method: "PUT", body: JSON.stringify(body) });
   }
 
   async patch<T>(path: string, body: unknown): Promise<ApiResponse<T>> {
-    return this.request<T>(path, {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    });
+    return this.request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
   }
 
   async delete<T>(path: string): Promise<ApiResponse<T>> {
