@@ -4,7 +4,7 @@ import { liabilitiesService } from "../services/liabilities.service.js";
 import { sendSuccess, sendError } from "../lib/envelope.js";
 
 export class LiabilitiesController {
-  async list(req: Request, res: Response, next: NextFunction) {
+  async list(_req: Request, res: Response, next: NextFunction) {
     try {
       const items = await liabilitiesService.list();
       sendSuccess(res, items);

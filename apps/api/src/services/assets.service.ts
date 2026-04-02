@@ -15,7 +15,11 @@ export class AssetsService {
   }
 
   async update(id: string, data: UpdateAsset) {
-    return prisma.asset.update({ where: { id }, data });
+    // Strip undefined values to satisfy Prisma's exactOptionalPropertyTypes
+    const cleaned = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => v !== undefined)
+    ) as Parameters<typeof prisma.asset.update>[0]["data"];
+    return prisma.asset.update({ where: { id }, data: cleaned });
   }
 
   async delete(id: string) {

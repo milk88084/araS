@@ -4,7 +4,7 @@ import { assetsService } from "../services/assets.service.js";
 import { sendSuccess, sendError } from "../lib/envelope.js";
 
 export class AssetsController {
-  async list(req: Request, res: Response, next: NextFunction) {
+  async list(_req: Request, res: Response, next: NextFunction) {
     try {
       const assets = await assetsService.list();
       sendSuccess(res, assets);

@@ -16,9 +16,9 @@ export class TransactionsService {
   }
 
   async create(data: CreateTransaction) {
-    const { date, ...rest } = data;
+    const { date, note, ...rest } = data;
     return prisma.transaction.create({
-      data: { ...rest, date: new Date(date) },
+      data: { ...rest, date: new Date(date), note: note ?? null },
     });
   }
 

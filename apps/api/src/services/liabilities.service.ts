@@ -15,7 +15,11 @@ export class LiabilitiesService {
   }
 
   async update(id: string, data: UpdateLiability) {
-    return prisma.liability.update({ where: { id }, data });
+    // Strip undefined values to satisfy Prisma's exactOptionalPropertyTypes
+    const cleaned = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => v !== undefined)
+    ) as Parameters<typeof prisma.liability.update>[0]["data"];
+    return prisma.liability.update({ where: { id }, data: cleaned });
   }
 
   async delete(id: string) {

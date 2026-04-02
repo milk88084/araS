@@ -4,7 +4,7 @@ import { portfolioService } from "../services/portfolio.service.js";
 import { sendSuccess, sendError } from "../lib/envelope.js";
 
 export class PortfolioController {
-  async list(req: Request, res: Response, next: NextFunction) {
+  async list(_req: Request, res: Response, next: NextFunction) {
     try {
       const items = await portfolioService.list();
       sendSuccess(res, items);
