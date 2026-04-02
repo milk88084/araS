@@ -2,7 +2,6 @@ import express from "express";
 import { securityHeaders, corsMiddleware } from "./middleware/security.js";
 import { apiRateLimit } from "./middleware/rate-limit.js";
 import { metricsMiddleware } from "./middleware/metrics.js";
-import { clerkAuth } from "./middleware/auth.js";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler.js";
 import routes from "./routes/index.js";
 
@@ -14,7 +13,6 @@ export function createApp() {
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(metricsMiddleware);
-  app.use(clerkAuth);
   app.use("/api", apiRateLimit);
 
   app.use("/api", routes);

@@ -17,9 +17,7 @@ vi.mock("../src/lib/env.js", () => ({
     NODE_ENV: "test",
     PORT: 3001,
     DATABASE_URL: "postgresql://test:test@localhost:5434/test",
-    CLERK_SECRET_KEY: "sk_test_xxx",
-    CLERK_PUBLISHABLE_KEY: "pk_test_xxx",
-    CORS_ORIGIN: "http://localhost:5173",
+    CORS_ORIGIN: "http://localhost:3000",
     LOG_LEVEL: "silent",
     RATE_LIMIT_MAX: 100,
     RATE_LIMIT_WINDOW_MS: 60000,
@@ -37,7 +35,6 @@ describe("GET /api/health", () => {
 
   it("returns healthy status", async () => {
     const res = await request(app).get("/api/health").expect(200);
-
     expect(res.body.success).toBe(true);
     expect(res.body.data.status).toBe("healthy");
     expect(res.body.data).toHaveProperty("uptime");
@@ -47,7 +44,6 @@ describe("GET /api/health", () => {
 
   it("returns REST envelope format", async () => {
     const res = await request(app).get("/api/health").expect(200);
-
     expect(res.body).toHaveProperty("success");
     expect(res.body).toHaveProperty("data");
     expect(res.body).toHaveProperty("timestamp");
