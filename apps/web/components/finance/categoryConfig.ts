@@ -1,0 +1,137 @@
+import {
+  Wallet,
+  Smartphone,
+  CreditCard,
+  LayoutGrid,
+  TrendingUp,
+  BarChart2,
+  Bitcoin,
+  Gem,
+  PiggyBank,
+  Home,
+  Car,
+  Building2,
+  Receipt,
+  Landmark,
+  ArrowDownLeft,
+  WalletCards,
+  GraduationCap,
+  ShoppingCart,
+  Flag,
+  Minus,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+export interface CategoryNode {
+  name: string;
+  icon: LucideIcon;
+  children?: CategoryNode[];
+}
+
+export interface TopCategory {
+  name: string;
+  color: string;
+  isLiability: boolean;
+  children: CategoryNode[];
+}
+
+export const CATEGORIES: TopCategory[] = [
+  {
+    name: "流動資金",
+    color: "#4CAF50",
+    isLiability: false,
+    children: [
+      { name: "現金", icon: Wallet },
+      {
+        name: "數位錢包",
+        icon: Smartphone,
+        children: [
+          { name: "Line Pay", icon: Smartphone },
+          { name: "Apple Pay", icon: Smartphone },
+        ],
+      },
+      { name: "金融卡", icon: CreditCard },
+      { name: "其他", icon: LayoutGrid },
+    ],
+  },
+  {
+    name: "投資",
+    color: "#5856D6",
+    isLiability: false,
+    children: [
+      { name: "投資基金", icon: TrendingUp },
+      {
+        name: "股票",
+        icon: BarChart2,
+        children: [
+          { name: "台股", icon: Flag },
+          { name: "台灣興櫃", icon: TrendingUp },
+          { name: "美股", icon: Flag },
+        ],
+      },
+      { name: "加密貨幣", icon: Bitcoin },
+      { name: "貴金屬", icon: Gem },
+      { name: "其他投資", icon: PiggyBank },
+    ],
+  },
+  {
+    name: "固定資產",
+    color: "#7B7EC4",
+    isLiability: false,
+    children: [
+      { name: "房屋", icon: Home },
+      { name: "車輛", icon: Car },
+      { name: "其他資產", icon: Building2 },
+    ],
+  },
+  {
+    name: "應收款",
+    color: "#A0A8D8",
+    isLiability: false,
+    children: [{ name: "一般應收款", icon: Receipt }],
+  },
+  {
+    name: "負債",
+    color: "#C7C7D4",
+    isLiability: true,
+    children: [
+      { name: "信用卡", icon: CreditCard },
+      {
+        name: "貸款",
+        icon: Landmark,
+        children: [
+          { name: "房屋貸款", icon: Home },
+          { name: "汽車貸款", icon: Car },
+          { name: "消費貸款", icon: ShoppingCart },
+          { name: "學生貸款", icon: GraduationCap },
+          { name: "其他貸款", icon: Minus },
+        ],
+      },
+      { name: "應付款", icon: ArrowDownLeft },
+      { name: "其他負債", icon: WalletCards },
+    ],
+  },
+];
+
+/** Find a node anywhere in the tree by name */
+function findNode(nodes: CategoryNode[], name: string): CategoryNode | null {
+  for (const node of nodes) {
+    if (node.name === name) return node;
+    if (node.children) {
+      const found = findNode(node.children, name);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+export function getTopCategory(topName: string): TopCategory | undefined {
+  return CATEGORIES.find((c) => c.name === topName);
+}
+
+export function getNodeIcon(topName: string, nodeName: string): LucideIcon {
+  const top = getTopCategory(topName);
+  if (!top) return Wallet;
+  const node = findNode(top.children, nodeName);
+  return node?.icon ?? top.children[0]?.icon ?? Wallet;
+}

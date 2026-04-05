@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Plus, PieChart } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Wallet } from "lucide-react";
 import type { Asset, Liability } from "@repo/shared";
 import { useFinanceStore } from "../../../store/useFinanceStore";
 import { formatCurrency } from "../../../lib/format";
@@ -10,20 +12,34 @@ import {
   type CategoryItem,
 } from "../../../components/finance/FinanceCategoryCard";
 import { AssetTreemap } from "../../../components/finance/AssetTreemap";
-import { AddItemActionSheet } from "../../../components/finance/AddItemActionSheet";
-import { AssetSheet } from "../../../components/finance/AssetSheet";
-import { LiabilitySheet } from "../../../components/finance/LiabilitySheet";
+import { AddAccountPage } from "../../../components/finance/AddAccountPage";
+import { AccountFormPage } from "../../../components/finance/AccountFormPage";
+import { getNodeIcon, getTopCategory } from "../../../components/finance/categoryConfig";
 
-type SheetType = "none" | "menu" | "asset" | "liability";
+interface FormConfig {
+  topCategory: string;
+  isLiability: boolean;
+  color: string;
+  subCategoryName: string;
+  SubCategoryIcon: LucideIcon;
+}
+
+interface EditItem {
+  id: string;
+  name: string;
+  value: number;
+  category: string;
+}
 
 export default function AssetsPage() {
   const { fetchAll, assets, liabilities, loading, deleteAsset, deleteLiability } =
     useFinanceStore();
 
   const [showChart, setShowChart] = useState(false);
-  const [sheet, setSheet] = useState<SheetType>("none");
-  const [editAsset, setEditAsset] = useState<Asset | null>(null);
-  const [editLiability, setEditLiability] = useState<Liability | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
+  const [editItem, setEditItem] = useState<EditItem | null>(null);
 
   useEffect(() => {
     fetchAll();
@@ -57,23 +73,53 @@ export default function AssetsPage() {
     })),
   ];
 
-  // Handlers
-  const handleEditAsset = (item: CategoryItem) => {
-    const found = assets.find((a) => a.id === item.id) ?? null;
-    setEditAsset(found);
-    setSheet("asset");
+  const openFormForNew = (
+    topCategory: string,
+    isLiability: boolean,
+    subCategoryName: string,
+    icon: LucideIcon,
+    color: string
+  ) => {
+    setFormConfig({ topCategory, isLiability, color, subCategoryName, SubCategoryIcon: icon });
+    setEditItem(null);
+    // Keep showMenu open — AccountFormPage slides in on top (z-70 > z-60)
+    // so there's no flicker from simultaneous slide-in + slide-out
+    setShowForm(true);
   };
 
-  const handleEditLiability = (item: CategoryItem) => {
-    const found = liabilities.find((l) => l.id === item.id) ?? null;
-    setEditLiability(found);
-    setSheet("liability");
+  const openFormForEdit = (item: CategoryItem, isLiability: boolean) => {
+    const topCategory = isLiability
+      ? (liabilities.find((l) => l.id === item.id)?.category ?? "")
+      : (assets.find((a) => a.id === item.id)?.category ?? "");
+
+    const topCat = getTopCategory(topCategory);
+    const color = topCat?.color ?? "#007aff";
+    const icon = getNodeIcon(topCategory, item.name);
+
+    setFormConfig({
+      topCategory,
+      isLiability,
+      color,
+      subCategoryName: item.name,
+      SubCategoryIcon: icon,
+    });
+    setEditItem({ id: item.id, name: item.name, value: item.value, category: topCategory });
+    setShowForm(true);
   };
 
-  const closeSheet = () => {
-    setSheet("none");
-    setEditAsset(null);
-    setEditLiability(null);
+  // Back button on AccountFormPage — close form only, reveal AddAccountPage underneath
+  const closeForm = () => {
+    setShowForm(false);
+    setFormConfig(null);
+    setEditItem(null);
+  };
+
+  // After save — close form and menu together
+  const closeAll = () => {
+    setShowForm(false);
+    setShowMenu(false);
+    setFormConfig(null);
+    setEditItem(null);
   };
 
   if (loading) {
@@ -110,7 +156,7 @@ export default function AssetsPage() {
             </button>
           )}
           <button
-            onClick={() => setSheet("menu")}
+            onClick={() => setShowMenu(true)}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-[#007aff]"
           >
             <Plus size={18} className="text-white" />
@@ -137,7 +183,7 @@ export default function AssetsPage() {
               value: a.value,
               updatedAt: a.updatedAt,
             }))}
-            onEditItem={handleEditAsset}
+            onEditItem={(item) => openFormForEdit(item, false)}
             onDeleteItem={deleteAsset}
           />
         ))}
@@ -153,14 +199,14 @@ export default function AssetsPage() {
               updatedAt: l.updatedAt,
             }))}
             isLiability
-            onEditItem={handleEditLiability}
+            onEditItem={(item) => openFormForEdit(item, true)}
             onDeleteItem={deleteLiability}
           />
         ))}
 
         {assets.length === 0 && liabilities.length === 0 && (
           <button
-            onClick={() => setSheet("menu")}
+            onClick={() => setShowMenu(true)}
             className="w-full rounded-2xl bg-white px-4 py-12 text-center shadow-sm transition-colors active:bg-[#f2f2f7]"
           >
             <p className="text-[15px] font-medium text-[#007aff]">+ 新增第一筆資產</p>
@@ -169,17 +215,25 @@ export default function AssetsPage() {
         )}
       </div>
 
-      {/* Modals */}
-      <AddItemActionSheet
-        open={sheet === "menu"}
-        onClose={() => setSheet("none")}
-        onAddAsset={() => setSheet("asset")}
-        onAddLiability={() => setSheet("liability")}
+      {/* Full-page category picker */}
+      <AddAccountPage
+        open={showMenu}
+        onClose={() => setShowMenu(false)}
+        onSelectCategory={openFormForNew}
       />
 
-      <AssetSheet open={sheet === "asset"} onClose={closeSheet} editItem={editAsset} />
-
-      <LiabilitySheet open={sheet === "liability"} onClose={closeSheet} editItem={editLiability} />
+      {/* Full-page account form */}
+      <AccountFormPage
+        open={showForm}
+        onClose={closeForm}
+        onSaved={closeAll}
+        topCategory={formConfig?.topCategory ?? ""}
+        isLiability={formConfig?.isLiability ?? false}
+        categoryColor={formConfig?.color ?? "#007aff"}
+        subCategoryName={formConfig?.subCategoryName ?? ""}
+        SubCategoryIcon={formConfig?.SubCategoryIcon ?? Wallet}
+        editItem={editItem}
+      />
     </div>
   );
 }

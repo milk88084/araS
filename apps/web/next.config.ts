@@ -27,11 +27,14 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              // Next.js dev mode needs 'unsafe-eval' for React Fast Refresh
+              process.env.NODE_ENV === "development"
+                ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+                : "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self'",
+              "connect-src 'self' ws: wss: https://openapi.twse.com.tw",
               "frame-src 'none'",
               "object-src 'none'",
               "base-uri 'self'",

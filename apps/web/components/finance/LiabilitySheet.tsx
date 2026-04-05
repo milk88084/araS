@@ -11,9 +11,11 @@ interface Props {
   open: boolean;
   onClose: () => void;
   editItem?: Liability | null;
+  presetCategory?: string;
+  nameSuggestion?: string;
 }
 
-export function LiabilitySheet({ open, onClose, editItem }: Props) {
+export function LiabilitySheet({ open, onClose, editItem, presetCategory, nameSuggestion }: Props) {
   const { addLiability, updateLiability } = useFinanceStore();
   const isEdit = !!editItem;
 
@@ -25,10 +27,11 @@ export function LiabilitySheet({ open, onClose, editItem }: Props) {
   useEffect(() => {
     if (open) {
       setName(editItem?.name ?? "");
-      setCategory(editItem?.category ?? "");
+      setName(editItem?.name ?? nameSuggestion ?? "");
+      setCategory(editItem?.category ?? presetCategory ?? "");
       setBalance(editItem ? String(editItem.balance) : "");
     }
-  }, [open, editItem]);
+  }, [open, editItem, presetCategory, nameSuggestion]);
 
   const handleSubmit = async () => {
     if (!name || !category || !balance) return;
@@ -62,7 +65,7 @@ export function LiabilitySheet({ open, onClose, editItem }: Props) {
         <div className="flex justify-center pt-3 pb-1">
           <div className="h-1 w-10 rounded-full bg-[#e5e5ea]" />
         </div>
-        <div className="mx-auto max-w-md px-4 pt-2 pb-8">
+        <div className="mx-auto max-w-md px-4 pt-2 pb-16">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-[17px] font-semibold text-[#1c1c1e]">
               {isEdit ? "編輯負債" : "新增負債"}
@@ -75,30 +78,38 @@ export function LiabilitySheet({ open, onClose, editItem }: Props) {
             </button>
           </div>
 
-          {/* Category chips */}
-          <div className="mb-3">
-            <label className="mb-2 block text-xs font-medium text-[#8e8e93]">類別</label>
-            <div className="mb-2 flex flex-wrap gap-2">
-              {PRESET_CATEGORIES.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCategory(c)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    category === c ? "bg-[#ff3b30] text-white" : "bg-[#f2f2f7] text-[#8e8e93]"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
+          {/* Category — locked tag if preset, picker otherwise */}
+          {presetCategory && !isEdit ? (
+            <div className="mb-3">
+              <span className="rounded-full bg-[#ff3b30]/10 px-3 py-1.5 text-xs font-semibold text-[#ff3b30]">
+                {category}
+              </span>
             </div>
-            <input
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="或輸入自訂類別"
-              className="w-full rounded-xl bg-[#f2f2f7] px-3 py-3 text-sm text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
-            />
-          </div>
+          ) : (
+            <div className="mb-3">
+              <label className="mb-2 block text-xs font-medium text-[#8e8e93]">類別</label>
+              <div className="mb-2 flex flex-wrap gap-2">
+                {PRESET_CATEGORIES.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCategory(c)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      category === c ? "bg-[#ff3b30] text-white" : "bg-[#f2f2f7] text-[#8e8e93]"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="或輸入自訂類別"
+                className="w-full rounded-xl bg-[#f2f2f7] px-3 py-3 text-sm text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
+              />
+            </div>
+          )}
 
           <div className="mb-3">
             <label className="mb-1.5 block text-xs font-medium text-[#8e8e93]">名稱</label>

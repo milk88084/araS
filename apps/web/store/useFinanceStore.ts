@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type {
   Asset,
   Liability,
@@ -13,7 +14,14 @@ import type {
   CreateTransaction,
   CreatePortfolioItem,
 } from "@repo/shared";
-import { api } from "../lib/api-client";
+
+function uuid() {
+  return crypto.randomUUID();
+}
+
+function now() {
+  return new Date().toISOString();
+}
 
 interface FinanceState {
   assets: Asset[];
@@ -35,88 +43,121 @@ interface FinanceState {
   deletePortfolioItem: (id: string) => Promise<void>;
 }
 
-export const useFinanceStore = create<FinanceState>((set) => ({
-  assets: [],
-  liabilities: [],
-  transactions: [],
-  portfolio: [],
-  loading: false,
-  error: null,
+export const useFinanceStore = create<FinanceState>()(
+  persist(
+    (set) => ({
+      assets: [],
+      liabilities: [],
+      transactions: [],
+      portfolio: [],
+      loading: false,
+      error: null,
 
-  fetchAll: async () => {
-    set({ loading: true, error: null });
-    try {
-      const [assetsRes, liabilitiesRes, transactionsRes, portfolioRes] = await Promise.all([
-        api.get<Asset[]>("/assets"),
-        api.get<Liability[]>("/liabilities"),
-        api.get<Transaction[]>("/transactions"),
-        api.get<PortfolioItem[]>("/portfolio"),
-      ]);
-      set({
-        assets: assetsRes.success ? assetsRes.data : [],
-        liabilities: liabilitiesRes.success ? liabilitiesRes.data : [],
-        transactions: transactionsRes.success ? transactionsRes.data : [],
-        portfolio: portfolioRes.success ? portfolioRes.data : [],
-        loading: false,
-      });
-    } catch {
-      set({ error: "無法載入資料，請稍後再試", loading: false });
+      fetchAll: async () => {
+        // 本地模式：資料已在 localStorage，無需 fetch
+      },
+
+      addAsset: async (data) => {
+        const asset: Asset = {
+          id: uuid(),
+          name: data.name,
+          category: data.category,
+          value: data.value,
+          createdAt: now(),
+          updatedAt: now(),
+        };
+        set((s) => ({ assets: [asset, ...s.assets] }));
+      },
+
+      updateAsset: async (id, data) => {
+        set((s) => ({
+          assets: s.assets.map((a) =>
+            a.id === id
+              ? {
+                  ...a,
+                  name: data.name ?? a.name,
+                  category: data.category ?? a.category,
+                  value: data.value ?? a.value,
+                  updatedAt: now(),
+                }
+              : a
+          ),
+        }));
+      },
+
+      deleteAsset: async (id) => {
+        set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }));
+      },
+
+      addLiability: async (data) => {
+        const liability: Liability = {
+          id: uuid(),
+          name: data.name,
+          category: data.category,
+          balance: data.balance,
+          createdAt: now(),
+          updatedAt: now(),
+        };
+        set((s) => ({ liabilities: [liability, ...s.liabilities] }));
+      },
+
+      updateLiability: async (id, data) => {
+        set((s) => ({
+          liabilities: s.liabilities.map((l) =>
+            l.id === id
+              ? {
+                  ...l,
+                  name: data.name ?? l.name,
+                  category: data.category ?? l.category,
+                  balance: data.balance ?? l.balance,
+                  updatedAt: now(),
+                }
+              : l
+          ),
+        }));
+      },
+
+      deleteLiability: async (id) => {
+        set((s) => ({ liabilities: s.liabilities.filter((l) => l.id !== id) }));
+      },
+
+      addTransaction: async (data) => {
+        const tx: Transaction = {
+          id: uuid(),
+          type: data.type,
+          amount: data.amount,
+          category: data.category,
+          source: data.source,
+          note: data.note ?? null,
+          date: data.date,
+          createdAt: now(),
+        };
+        set((s) => ({ transactions: [tx, ...s.transactions] }));
+      },
+
+      deleteTransaction: async (id) => {
+        set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) }));
+      },
+
+      addPortfolioItem: async (data) => {
+        const item: PortfolioItem = {
+          id: uuid(),
+          symbol: data.symbol,
+          name: data.name,
+          avgCost: data.avgCost,
+          shares: data.shares,
+          createdAt: now(),
+          updatedAt: now(),
+        };
+        set((s) => ({ portfolio: [item, ...s.portfolio] }));
+      },
+
+      deletePortfolioItem: async (id) => {
+        set((s) => ({ portfolio: s.portfolio.filter((p) => p.id !== id) }));
+      },
+    }),
+    {
+      name: "finance-store", // localStorage key
     }
-  },
-
-  addAsset: async (data) => {
-    const res = await api.post<Asset>("/assets", data);
-    if (res.success) set((state) => ({ assets: [res.data, ...state.assets] }));
-  },
-
-  updateAsset: async (id, data) => {
-    const res = await api.put<Asset>(`/assets/${id}`, data);
-    if (res.success)
-      set((state) => ({ assets: state.assets.map((a) => (a.id === id ? res.data : a)) }));
-  },
-
-  deleteAsset: async (id) => {
-    const res = await api.delete(`/assets/${id}`);
-    if (res.success) set((state) => ({ assets: state.assets.filter((a) => a.id !== id) }));
-  },
-
-  addLiability: async (data) => {
-    const res = await api.post<Liability>("/liabilities", data);
-    if (res.success) set((state) => ({ liabilities: [res.data, ...state.liabilities] }));
-  },
-
-  updateLiability: async (id, data) => {
-    const res = await api.put<Liability>(`/liabilities/${id}`, data);
-    if (res.success)
-      set((state) => ({
-        liabilities: state.liabilities.map((l) => (l.id === id ? res.data : l)),
-      }));
-  },
-
-  deleteLiability: async (id) => {
-    const res = await api.delete(`/liabilities/${id}`);
-    if (res.success)
-      set((state) => ({ liabilities: state.liabilities.filter((l) => l.id !== id) }));
-  },
-
-  addTransaction: async (data) => {
-    const res = await api.post<Transaction>("/transactions", data);
-    if (res.success) set((state) => ({ transactions: [res.data, ...state.transactions] }));
-  },
-
-  deleteTransaction: async (id) => {
-    const res = await api.delete(`/transactions/${id}`);
-    if (res.success)
-      set((state) => ({ transactions: state.transactions.filter((t) => t.id !== id) }));
-  },
-
-  addPortfolioItem: async (data) => {
-    const res = await api.post<PortfolioItem>("/portfolio", data);
-    if (res.success) set((state) => ({ portfolio: [res.data, ...state.portfolio] }));
-  },
-
-  deletePortfolioItem: async (id) => {
-    const res = await api.delete(`/portfolio/${id}`);
-    if (res.success) set((state) => ({ portfolio: state.portfolio.filter((p) => p.id !== id) }));
-  },
-}));
+  )
+);

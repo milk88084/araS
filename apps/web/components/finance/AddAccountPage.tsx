@@ -1,0 +1,213 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { CATEGORIES, type CategoryNode, type TopCategory } from "./categoryConfig";
+
+interface DrillTarget {
+  title: string;
+  color: string;
+  isLiability: boolean;
+  topCategory: string;
+  items: CategoryNode[];
+}
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  onSelectCategory: (
+    topCategory: string,
+    isLiability: boolean,
+    nameSuggestion: string,
+    icon: LucideIcon,
+    color: string
+  ) => void;
+}
+
+export function AddAccountPage({ open, onClose, onSelectCategory }: Props) {
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [drillTarget, setDrillTarget] = useState<DrillTarget | null>(null);
+
+  const handleClose = () => {
+    setExpandedCategory(null);
+    setDrillTarget(null);
+    onClose();
+  };
+
+  const handleBack = () => {
+    if (drillTarget) {
+      // Level 3 → back to the expanded category (Level 2)
+      setDrillTarget(null);
+    } else if (expandedCategory) {
+      // Level 2 → back to root (all collapsed)
+      setExpandedCategory(null);
+    } else {
+      // Root → close
+      onClose();
+    }
+  };
+
+  const handleTopCategoryClick = (topCat: TopCategory) => {
+    setExpandedCategory((prev) => (prev === topCat.name ? null : topCat.name));
+  };
+
+  const handleSubItemClick = (node: CategoryNode, topCat: TopCategory) => {
+    if (node.children && node.children.length > 0) {
+      setDrillTarget({
+        title: node.name,
+        color: topCat.color,
+        isLiability: topCat.isLiability,
+        topCategory: topCat.name,
+        items: node.children,
+      });
+    } else {
+      setExpandedCategory(null);
+      setDrillTarget(null);
+      onSelectCategory(topCat.name, topCat.isLiability, node.name, node.icon, topCat.color);
+    }
+  };
+
+  const handleDrillItemClick = (node: CategoryNode) => {
+    if (!drillTarget) return;
+    setDrillTarget(null);
+    onSelectCategory(
+      drillTarget.topCategory,
+      drillTarget.isLiability,
+      node.name,
+      node.icon,
+      drillTarget.color
+    );
+  };
+
+  return (
+    <div
+      className={`fixed inset-0 z-[60] bg-[#f2f2f7] transition-transform duration-300 ease-in-out ${
+        open ? "translate-x-0" : "pointer-events-none translate-x-full"
+      }`}
+    >
+      {/* Header */}
+      <div className="mx-auto max-w-md px-4 pt-14">
+        <div className="mb-6 flex items-center">
+          <button
+            onClick={handleBack}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm"
+          >
+            <ChevronLeft size={20} className="text-[#1c1c1e]" />
+          </button>
+          <h1 className="flex-1 text-center text-[20px] font-bold text-[#1c1c1e]">
+            {drillTarget ? drillTarget.title : "新增帳戶"}
+          </h1>
+          <button
+            onClick={handleClose}
+            className="w-10 text-right text-[15px] font-medium text-[#007aff]"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+
+      {/* Drill-down view (Level 3 items) */}
+      {drillTarget ? (
+        <div
+          className="mx-auto max-w-md overflow-y-auto px-4"
+          style={{ height: "calc(100vh - 120px)" }}
+        >
+          <div className="space-y-2 pb-8">
+            {drillTarget.items.map((node) => {
+              const Icon = node.icon;
+              return (
+                <button
+                  key={node.name}
+                  onClick={() => handleDrillItemClick(node)}
+                  className="flex w-full items-center gap-4 rounded-2xl bg-white px-4 py-4 text-left shadow-sm transition-colors active:bg-[#f2f2f7]"
+                >
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: drillTarget.color + "20" }}
+                  >
+                    <Icon size={20} style={{ color: drillTarget.color }} />
+                  </div>
+                  <p className="text-[16px] font-medium text-[#1c1c1e]">{node.name}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* Root view — accordion categories */
+        <div
+          className="mx-auto max-w-md overflow-y-auto px-4"
+          style={{ height: "calc(100vh - 120px)" }}
+        >
+          <div className="space-y-3 pb-8">
+            {CATEGORIES.map((topCat) => {
+              const isExpanded = expandedCategory === topCat.name;
+              return (
+                <div key={topCat.name} className="overflow-hidden rounded-2xl bg-white shadow-sm">
+                  {/* Category header — tap to expand/collapse */}
+                  <button
+                    onClick={() => handleTopCategoryClick(topCat)}
+                    className="flex w-full items-center justify-between px-5 py-4 active:opacity-70"
+                    style={{ backgroundColor: isExpanded ? topCat.color : undefined }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{
+                          backgroundColor: isExpanded ? "rgba(255,255,255,0.8)" : topCat.color,
+                        }}
+                      />
+                      <p
+                        className="text-[17px] font-semibold"
+                        style={{ color: isExpanded ? "#ffffff" : "#1c1c1e" }}
+                      >
+                        {topCat.name}
+                      </p>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown size={18} style={{ color: "rgba(255,255,255,0.8)" }} />
+                    ) : (
+                      <ChevronRight size={18} className="text-[#c7c7cc]" />
+                    )}
+                  </button>
+
+                  {/* Sub-category items — visible only when expanded */}
+                  {isExpanded && (
+                    <div className="border-t border-[#f2f2f7]">
+                      {topCat.children.map((node, idx) => {
+                        const Icon = node.icon;
+                        const hasChildren = !!(node.children && node.children.length > 0);
+                        const isLast = idx === topCat.children.length - 1;
+                        return (
+                          <div key={node.name}>
+                            <button
+                              onClick={() => handleSubItemClick(node, topCat)}
+                              className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors active:bg-[#f2f2f7]"
+                            >
+                              <div
+                                className="flex h-9 w-9 items-center justify-center rounded-xl"
+                                style={{ backgroundColor: topCat.color + "20" }}
+                              >
+                                <Icon size={18} style={{ color: topCat.color }} />
+                              </div>
+                              <p className="flex-1 text-[15px] font-medium text-[#1c1c1e]">
+                                {node.name}
+                              </p>
+                              {hasChildren && <ChevronRight size={16} className="text-[#c7c7cc]" />}
+                            </button>
+                            {!isLast && <div className="mx-5 h-px bg-[#f2f2f7]" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
