@@ -16,18 +16,18 @@ const actions = [
 export function QuickActionsGrid({ onRecordExpense }: Props) {
   return (
     <div>
-      <p className="mb-2 text-sm font-medium text-gray-700">快速操作</p>
-      <div className="grid grid-cols-2 gap-3">
+      <p className="mb-2 text-[13px] text-[#8e8e93]">快速操作</p>
+      <div className="grid grid-cols-2 gap-2.5">
         {actions.map(({ icon: Icon, label, key }) => (
           <button
             key={key}
             onClick={() => key === "record" && onRecordExpense()}
-            className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 shadow-sm transition-transform active:scale-95"
+            className="flex flex-col items-center gap-2.5 rounded-2xl bg-white p-4 shadow-sm transition-transform active:scale-95"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50">
-              <Icon size={18} className="text-gray-700" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f2f2f7]">
+              <Icon size={18} className="text-[#007aff]" />
             </div>
-            <span className="text-xs font-medium text-gray-600">{label}</span>
+            <span className="text-xs font-medium text-[#1c1c1e]">{label}</span>
           </button>
         ))}
       </div>

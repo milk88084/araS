@@ -22,28 +22,28 @@ export function PortfolioSection({ portfolio }: Props) {
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-700">投資組合</p>
+        <p className="text-[13px] text-[#8e8e93]">投資組合</p>
         <div className="flex gap-1">
           <button
             onClick={() => portfolio.length > 0 && refreshQuotes(portfolio.map((p) => p.symbol))}
             disabled={loading}
-            className="rounded-lg p-1.5 transition-colors hover:bg-gray-100"
+            className="rounded-lg p-1.5 transition-colors active:bg-[#f2f2f7]"
           >
-            <RefreshCw size={14} className={`text-gray-500 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw size={14} className={`text-[#8e8e93] ${loading ? "animate-spin" : ""}`} />
           </button>
-          <button onClick={() => setShowAdd(true)} className="rounded-lg p-1.5 hover:bg-gray-100">
-            <Plus size={14} className="text-gray-500" />
+          <button onClick={() => setShowAdd(true)} className="rounded-lg p-1.5 active:bg-[#f2f2f7]">
+            <Plus size={14} className="text-[#8e8e93]" />
           </button>
         </div>
       </div>
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
         {portfolio.length === 0 ? (
-          <div className="py-8 text-center text-sm text-gray-400">
+          <div className="py-10 text-center text-sm text-[#c7c7cc]">
             <p>尚無投資項目</p>
             <button
               onClick={() => setShowAdd(true)}
-              className="mt-2 text-sm font-medium text-gray-700 underline"
+              className="mt-2 text-sm font-medium text-[#007aff]"
             >
               新增第一筆
             </button>
@@ -61,28 +61,30 @@ export function PortfolioSection({ portfolio }: Props) {
               return (
                 <li
                   key={item.id}
-                  className={`flex items-center justify-between px-4 py-3 ${
-                    i !== portfolio.length - 1 ? "border-b border-gray-50" : ""
+                  className={`flex items-center justify-between px-4 py-3.5 ${
+                    i !== portfolio.length - 1 ? "border-b border-[#f2f2f7]" : ""
                   }`}
                 >
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{item.name}</p>
-                    <p className="mt-0.5 text-xs text-gray-400">{item.symbol}</p>
+                    <p className="text-[15px] font-medium text-[#1c1c1e]">{item.name}</p>
+                    <p className="mt-0.5 text-[12px] text-[#8e8e93]">{item.symbol}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-gray-800">
+                    <p className="text-[15px] font-medium text-[#1c1c1e]">
                       {quote ? formatCurrency(quote.price, quote.currency) : "—"}
                     </p>
                     {unrealizedPL !== null && returnRate !== null ? (
                       <span
-                        className={`rounded-md px-1.5 py-0.5 text-xs font-medium ${
-                          isGain ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"
+                        className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
+                          isGain
+                            ? "bg-[#34c759]/15 text-[#34c759]"
+                            : "bg-[#ff3b30]/10 text-[#ff3b30]"
                         }`}
                       >
                         {formatPercent(returnRate)}
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-300">載入中</span>
+                      <span className="text-[11px] text-[#c7c7cc]">載入中</span>
                     )}
                   </div>
                 </li>

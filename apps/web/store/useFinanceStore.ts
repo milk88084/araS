@@ -7,7 +7,9 @@ import type {
   Transaction,
   PortfolioItem,
   CreateAsset,
+  UpdateAsset,
   CreateLiability,
+  UpdateLiability,
   CreateTransaction,
   CreatePortfolioItem,
 } from "@repo/shared";
@@ -22,8 +24,10 @@ interface FinanceState {
   error: string | null;
   fetchAll: () => Promise<void>;
   addAsset: (data: CreateAsset) => Promise<void>;
+  updateAsset: (id: string, data: UpdateAsset) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
   addLiability: (data: CreateLiability) => Promise<void>;
+  updateLiability: (id: string, data: UpdateLiability) => Promise<void>;
   deleteLiability: (id: string) => Promise<void>;
   addTransaction: (data: CreateTransaction) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
@@ -65,6 +69,12 @@ export const useFinanceStore = create<FinanceState>((set) => ({
     if (res.success) set((state) => ({ assets: [res.data, ...state.assets] }));
   },
 
+  updateAsset: async (id, data) => {
+    const res = await api.put<Asset>(`/assets/${id}`, data);
+    if (res.success)
+      set((state) => ({ assets: state.assets.map((a) => (a.id === id ? res.data : a)) }));
+  },
+
   deleteAsset: async (id) => {
     const res = await api.delete(`/assets/${id}`);
     if (res.success) set((state) => ({ assets: state.assets.filter((a) => a.id !== id) }));
@@ -73,6 +83,14 @@ export const useFinanceStore = create<FinanceState>((set) => ({
   addLiability: async (data) => {
     const res = await api.post<Liability>("/liabilities", data);
     if (res.success) set((state) => ({ liabilities: [res.data, ...state.liabilities] }));
+  },
+
+  updateLiability: async (id, data) => {
+    const res = await api.put<Liability>(`/liabilities/${id}`, data);
+    if (res.success)
+      set((state) => ({
+        liabilities: state.liabilities.map((l) => (l.id === id ? res.data : l)),
+      }));
   },
 
   deleteLiability: async (id) => {

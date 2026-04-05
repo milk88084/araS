@@ -41,7 +41,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-sm text-gray-400">載入中...</div>
+        <div className="text-sm text-[#8e8e93]">載入中...</div>
       </div>
     );
   }

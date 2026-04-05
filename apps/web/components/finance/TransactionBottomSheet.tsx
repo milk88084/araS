@@ -52,25 +52,32 @@ export function TransactionBottomSheet({ open, onClose }: Props) {
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity ${
+        className={`fixed inset-0 z-40 bg-black/30 transition-opacity ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={onClose}
       />
       <div
-        className={`fixed right-0 bottom-0 left-0 z-50 rounded-t-2xl bg-white transition-transform duration-300 ${
-          open ? "translate-y-0" : "translate-y-full"
+        className={`fixed right-0 bottom-0 left-0 z-50 rounded-t-3xl bg-white transition-transform duration-300 ${
+          open ? "translate-y-0" : "pointer-events-none translate-y-full"
         }`}
       >
-        <div className="mx-auto max-w-md p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">紀錄收支</h2>
-            <button onClick={onClose} className="rounded-full p-1 hover:bg-gray-100">
-              <X size={18} className="text-gray-500" />
+        {/* drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="h-1 w-10 rounded-full bg-[#e5e5ea]" />
+        </div>
+        <div className="mx-auto max-w-md px-4 pt-2 pb-8">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-[17px] font-semibold text-[#1c1c1e]">紀錄收支</h2>
+            <button
+              onClick={onClose}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f2f2f7]"
+            >
+              <X size={14} className="text-[#8e8e93]" />
             </button>
           </div>
 
-          <div className="mb-4 flex rounded-xl bg-gray-100 p-1">
+          <div className="mb-4 flex rounded-xl bg-[#f2f2f7] p-1">
             {(["expense", "income"] as TransactionType[]).map((t) => (
               <button
                 key={t}
@@ -79,7 +86,7 @@ export function TransactionBottomSheet({ open, onClose }: Props) {
                   setCategory("");
                 }}
                 className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-                  type === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+                  type === t ? "bg-white text-[#1c1c1e] shadow-sm" : "text-[#8e8e93]"
                 }`}
               >
                 {t === "expense" ? "支出" : "收入"}
@@ -88,25 +95,25 @@ export function TransactionBottomSheet({ open, onClose }: Props) {
           </div>
 
           <div className="mb-3">
-            <label className="mb-1 block text-xs text-gray-500">金額</label>
-            <div className="flex items-center rounded-xl bg-gray-50 px-3 py-2.5">
-              <span className="mr-2 text-sm text-gray-400">TWD</span>
+            <label className="mb-1.5 block text-xs font-medium text-[#8e8e93]">金額</label>
+            <div className="flex items-center rounded-xl bg-[#f2f2f7] px-3 py-3">
+              <span className="mr-2 text-sm text-[#8e8e93]">TWD</span>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0"
-                className="flex-1 bg-transparent text-sm text-gray-900 outline-none"
+                className="flex-1 bg-transparent text-sm text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
               />
             </div>
           </div>
 
           <div className="mb-3">
-            <label className="mb-1 block text-xs text-gray-500">類別</label>
+            <label className="mb-1.5 block text-xs font-medium text-[#8e8e93]">類別</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-xl bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none"
+              className="w-full rounded-xl bg-[#f2f2f7] px-3 py-3 text-sm text-[#1c1c1e] outline-none"
             >
               <option value="">選擇類別</option>
               {categories.map((c) => (
@@ -118,37 +125,37 @@ export function TransactionBottomSheet({ open, onClose }: Props) {
           </div>
 
           <div className="mb-3">
-            <label className="mb-1 block text-xs text-gray-500">日期</label>
+            <label className="mb-1.5 block text-xs font-medium text-[#8e8e93]">日期</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-xl bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none"
+              className="w-full rounded-xl bg-[#f2f2f7] px-3 py-3 text-sm text-[#1c1c1e] outline-none"
             />
           </div>
 
           <div className="mb-3">
-            <label className="mb-1 block text-xs text-gray-500">備註</label>
+            <label className="mb-1.5 block text-xs font-medium text-[#8e8e93]">備註</label>
             <input
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="選填"
-              className="w-full rounded-xl bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none"
+              className="w-full rounded-xl bg-[#f2f2f7] px-3 py-3 text-sm text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
             />
           </div>
 
-          <div className="mb-5">
-            <label className="mb-1 block text-xs text-gray-500">資金來源</label>
+          <div className="mb-6">
+            <label className="mb-1.5 block text-xs font-medium text-[#8e8e93]">資金來源</label>
             <div className="flex gap-2">
               {SOURCES.map(({ key, label }) => (
                 <button
                   key={key}
                   onClick={() => setSource(key)}
-                  className={`flex-1 rounded-xl border py-2 text-xs font-medium transition-colors ${
+                  className={`flex-1 rounded-xl border py-2.5 text-xs font-medium transition-colors ${
                     source === key
-                      ? "border-gray-900 bg-gray-900 text-white"
-                      : "border-gray-200 bg-white text-gray-600"
+                      ? "border-[#007aff] bg-[#007aff]/10 text-[#007aff]"
+                      : "border-[#e5e5ea] text-[#8e8e93]"
                   }`}
                 >
                   {label}
@@ -160,7 +167,7 @@ export function TransactionBottomSheet({ open, onClose }: Props) {
           <button
             onClick={handleSubmit}
             disabled={!amount || !category || submitting}
-            className="w-full rounded-xl bg-gray-900 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-[#007aff] py-3.5 text-sm font-semibold text-white disabled:opacity-40"
           >
             {submitting ? "儲存中..." : "儲存"}
           </button>

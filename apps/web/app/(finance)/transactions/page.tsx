@@ -1,8 +1,8 @@
 export default function TransactionsPage() {
   return (
     <div className="px-4 pt-6">
-      <h1 className="mb-4 text-xl font-bold text-gray-900">收支</h1>
-      <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400 shadow-sm">
+      <h1 className="mb-4 text-xl font-bold text-[#1c1c1e]">收支</h1>
+      <div className="rounded-2xl bg-white p-10 text-center text-sm text-[#c7c7cc] shadow-sm">
         即將推出
       </div>
     </div>

@@ -63,33 +63,39 @@ export function AddPortfolioItemModal({ open, onClose }: Props) {
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity ${
+        className={`fixed inset-0 z-40 bg-black/30 transition-opacity ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={onClose}
       />
       <div
-        className={`fixed right-0 bottom-0 left-0 z-50 rounded-t-2xl bg-white transition-transform duration-300 ${
-          open ? "translate-y-0" : "translate-y-full"
+        className={`fixed right-0 bottom-0 left-0 z-50 rounded-t-3xl bg-white transition-transform duration-300 ${
+          open ? "translate-y-0" : "pointer-events-none translate-y-full"
         }`}
       >
-        <div className="mx-auto max-w-md p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">新增投資標的</h2>
-            <button onClick={onClose} className="rounded-full p-1 hover:bg-gray-100">
-              <X size={18} className="text-gray-500" />
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="h-1 w-10 rounded-full bg-[#e5e5ea]" />
+        </div>
+        <div className="mx-auto max-w-md px-4 pt-2 pb-8">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-[17px] font-semibold text-[#1c1c1e]">新增投資標的</h2>
+            <button
+              onClick={onClose}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f2f2f7]"
+            >
+              <X size={14} className="text-[#8e8e93]" />
             </button>
           </div>
 
           {fields.map(({ label, value, onChange, placeholder, type, upper }) => (
             <div key={label} className="mb-3">
-              <label className="mb-1 block text-xs text-gray-500">{label}</label>
+              <label className="mb-1.5 block text-xs font-medium text-[#8e8e93]">{label}</label>
               <input
                 type={type ?? "text"}
                 value={value}
                 onChange={(e) => onChange(upper ? e.target.value.toUpperCase() : e.target.value)}
                 placeholder={placeholder}
-                className="w-full rounded-xl bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none"
+                className="w-full rounded-xl bg-[#f2f2f7] px-3 py-3 text-sm text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
               />
             </div>
           ))}
@@ -97,7 +103,7 @@ export function AddPortfolioItemModal({ open, onClose }: Props) {
           <button
             onClick={handleSubmit}
             disabled={!symbol || !name || !avgCost || !shares || submitting}
-            className="mt-2 w-full rounded-xl bg-gray-900 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="mt-2 w-full rounded-xl bg-[#007aff] py-3.5 text-sm font-semibold text-white disabled:opacity-40"
           >
             {submitting ? "新增中..." : "新增"}
           </button>
