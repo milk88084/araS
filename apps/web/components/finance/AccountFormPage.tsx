@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ChevronLeft, ChevronDown, ChevronRight, Check, Info, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Info, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { StockPickerPage, type StockItem } from "./StockPickerPage";
@@ -79,6 +79,7 @@ export function AccountFormPage({
   // Stock picker state
   const [showStockPicker, setShowStockPicker] = useState(false);
   const [selectedStock, setSelectedStock] = useState<StockItem | null>(null);
+  const [priceLoading, setPriceLoading] = useState(false);
 
   const [name, setName] = useState("");
   const [includeInChart, setIncludeInChart] = useState(true);
@@ -109,6 +110,22 @@ export function AccountFormPage({
   const handleSelectStock = (stock: StockItem) => {
     setSelectedStock(stock);
     if (!name) setName(stock.name);
+
+    // Build Yahoo Finance symbol: 台股 → code.TW, 台灣興櫃 → code.TWO, 美股 → code as-is
+    const suffix =
+      subCategoryName === "台股" ? ".TW" : subCategoryName === "台灣興櫃" ? ".TWO" : "";
+    const yfSymbol = stock.code + suffix;
+
+    setPriceLoading(true);
+    fetch(`/api/stocks/price?symbol=${encodeURIComponent(yfSymbol)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (typeof data.price === "number") setPricePerUnit(String(data.price));
+      })
+      .catch(() => {
+        /* keep manual input if fetch fails */
+      })
+      .finally(() => setPriceLoading(false));
   };
 
   const handleSubmit = async () => {
@@ -227,10 +244,21 @@ export function AccountFormPage({
 
                 {/* Price per unit + computed total */}
                 <div className="flex items-center justify-between px-5 pb-4">
-                  <button className="flex items-center gap-1 rounded-lg bg-[#f2f2f7] px-3 py-1.5">
-                    <span className="text-[13px] font-medium text-[#1c1c1e]">TWD&nbsp;1</span>
-                    <ChevronDown size={12} className="text-[#8e8e93]" />
-                  </button>
+                  <div className="flex items-center gap-1 rounded-lg bg-[#f2f2f7] px-3 py-1.5">
+                    {priceLoading ? (
+                      <span className="text-[13px] text-[#8e8e93]">查詢中...</span>
+                    ) : (
+                      <>
+                        <span className="text-[13px] font-medium text-[#1c1c1e]">每股&nbsp;</span>
+                        <input
+                          type="number"
+                          value={pricePerUnit}
+                          onChange={(e) => setPricePerUnit(e.target.value)}
+                          className="w-20 bg-transparent text-[13px] font-semibold text-[#1c1c1e] outline-none"
+                        />
+                      </>
+                    )}
+                  </div>
                   <p className="text-[13px] text-[#8e8e93]">
                     =&nbsp;TWD&nbsp;
                     <span className="font-semibold text-[#1c1c1e]">
