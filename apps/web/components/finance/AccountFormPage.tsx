@@ -51,7 +51,7 @@ const INVESTMENT_CATEGORIES = [
   "貴金屬",
   "其他投資",
 ];
-const STOCK_PICKER_CATEGORIES = ["台股", "台灣興櫃"];
+const STOCK_PICKER_CATEGORIES = ["台股", "台灣興櫃", "美股"];
 
 export function AccountFormPage({
   open,

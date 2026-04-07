@@ -62,15 +62,12 @@ export function AddAccountPage({ open, onClose, onSelectCategory }: Props) {
         items: node.children,
       });
     } else {
-      setExpandedCategory(null);
-      setDrillTarget(null);
       onSelectCategory(topCat.name, topCat.isLiability, node.name, node.icon, topCat.color);
     }
   };
 
   const handleDrillItemClick = (node: CategoryNode) => {
     if (!drillTarget) return;
-    setDrillTarget(null);
     onSelectCategory(
       drillTarget.topCategory,
       drillTarget.isLiability,

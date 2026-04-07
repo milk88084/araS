@@ -28,24 +28,38 @@ async function fetchTWListedStocks(): Promise<StockItem[]> {
     .filter((s) => s.code && s.name);
 }
 
+async function fetchUSStocks(): Promise<StockItem[]> {
+  const res = await fetch("/api/stocks/us");
+  if (!res.ok) throw new Error("fetch failed");
+  return res.json() as Promise<StockItem[]>;
+}
+
 export function StockPickerPage({ open, onClose, onSelect, market, color }: Props) {
   const [stocks, setStocks] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const hasFetched = useRef(false);
+  const fetchedMarket = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (!open || hasFetched.current) return;
-    hasFetched.current = true;
+  const fetchStocks = (targetMarket: string) => {
     setLoading(true);
     setError(null);
-    fetchTWListedStocks()
+    const fetcher = targetMarket === "美股" ? fetchUSStocks : fetchTWListedStocks;
+    fetcher()
       .then(setStocks)
       .catch(() => setError("無法載入股票清單，請檢查網路連線"))
       .finally(() => setLoading(false));
-  }, [open]);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    if (fetchedMarket.current === market) return;
+    fetchedMarket.current = market;
+    setStocks([]);
+    setQuery("");
+    fetchStocks(market);
+  }, [open, market]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return stocks;
@@ -87,12 +101,8 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
               <p className="text-[14px] text-[#ff3b30]">{error}</p>
               <button
                 onClick={() => {
-                  hasFetched.current = false;
-                  setLoading(true);
-                  fetchTWListedStocks()
-                    .then(setStocks)
-                    .catch(() => setError("無法載入股票清單，請檢查網路連線"))
-                    .finally(() => setLoading(false));
+                  fetchedMarket.current = null;
+                  fetchStocks(market);
                 }}
                 className="mt-3 text-[14px] font-medium text-[#007aff]"
               >
@@ -116,7 +126,7 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
                     style={{ backgroundColor: color + "20" }}
                   >
                     <span className="text-[11px] font-bold" style={{ color }}>
-                      TW
+                      {market === "美股" ? "US" : "TW"}
                     </span>
                   </div>
                   <div>
