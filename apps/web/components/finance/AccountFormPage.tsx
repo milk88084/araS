@@ -51,7 +51,7 @@ const INVESTMENT_CATEGORIES = [
   "貴金屬",
   "其他投資",
 ];
-const STOCK_PICKER_CATEGORIES = ["台股", "台灣興櫃", "美股"];
+const STOCK_PICKER_CATEGORIES = ["台股", "台灣興櫃", "美股", "加密貨幣"];
 
 export function AccountFormPage({
   open,
@@ -111,9 +111,15 @@ export function AccountFormPage({
     setSelectedStock(stock);
     if (!name) setName(stock.name);
 
-    // Build Yahoo Finance symbol: 台股 → code.TW, 台灣興櫃 → code.TWO, 美股 → code as-is
+    // Build Yahoo Finance symbol: 台股 → code.TW, 台灣興櫃 → code.TWO, 加密貨幣 → code-USD, 美股 → code as-is
     const suffix =
-      subCategoryName === "台股" ? ".TW" : subCategoryName === "台灣興櫃" ? ".TWO" : "";
+      subCategoryName === "台股"
+        ? ".TW"
+        : subCategoryName === "台灣興櫃"
+          ? ".TWO"
+          : subCategoryName === "加密貨幣"
+            ? "-USD"
+            : "";
     const yfSymbol = stock.code + suffix;
 
     setPriceLoading(true);

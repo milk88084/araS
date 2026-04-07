@@ -34,6 +34,12 @@ async function fetchUSStocks(): Promise<StockItem[]> {
   return res.json() as Promise<StockItem[]>;
 }
 
+async function fetchCryptoList(): Promise<StockItem[]> {
+  const res = await fetch("/api/stocks/crypto");
+  if (!res.ok) throw new Error("fetch failed");
+  return res.json() as Promise<StockItem[]>;
+}
+
 export function StockPickerPage({ open, onClose, onSelect, market, color }: Props) {
   const [stocks, setStocks] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,7 +51,12 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
   const fetchStocks = (targetMarket: string) => {
     setLoading(true);
     setError(null);
-    const fetcher = targetMarket === "美股" ? fetchUSStocks : fetchTWListedStocks;
+    const fetcher =
+      targetMarket === "美股"
+        ? fetchUSStocks
+        : targetMarket === "加密貨幣"
+          ? fetchCryptoList
+          : fetchTWListedStocks;
     fetcher()
       .then(setStocks)
       .catch(() => setError("無法載入股票清單，請檢查網路連線"))
@@ -61,11 +72,15 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
     fetchStocks(market);
   }, [open, market]);
 
+  const MAX_DISPLAY = 100;
+
   const filtered = useMemo(() => {
     if (!query.trim()) return stocks;
     const q = query.trim().toLowerCase();
     return stocks.filter((s) => s.code.startsWith(q) || s.name.toLowerCase().includes(q));
   }, [stocks, query]);
+
+  const displayed = filtered.slice(0, MAX_DISPLAY);
 
   const handleSelect = (stock: StockItem) => {
     onSelect(stock);
@@ -115,7 +130,7 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
             </div>
           ) : (
             <div className="divide-y divide-[#f2f2f7] pb-4">
-              {filtered.map((stock) => (
+              {displayed.map((stock) => (
                 <button
                   key={stock.code}
                   onClick={() => handleSelect(stock)}
@@ -126,7 +141,7 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
                     style={{ backgroundColor: color + "20" }}
                   >
                     <span className="text-[11px] font-bold" style={{ color }}>
-                      {market === "美股" ? "US" : "TW"}
+                      {market === "美股" ? "US" : market === "加密貨幣" ? "₿" : "TW"}
                     </span>
                   </div>
                   <div>
@@ -135,6 +150,11 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
                   </div>
                 </button>
               ))}
+              {filtered.length > MAX_DISPLAY && (
+                <p className="py-4 text-center text-[13px] text-[#8e8e93]">
+                  顯示前 {MAX_DISPLAY} 筆，請輸入更多字縮小範圍
+                </p>
+              )}
             </div>
           )}
         </div>
