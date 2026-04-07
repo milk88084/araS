@@ -51,7 +51,14 @@ const INVESTMENT_CATEGORIES = [
   "貴金屬",
   "其他投資",
 ];
-const STOCK_PICKER_CATEGORIES = ["台股", "台灣興櫃", "美股", "加密貨幣"];
+const STOCK_PICKER_CATEGORIES = ["台股", "台灣興櫃", "美股", "加密貨幣", "貴金屬"];
+
+const METAL_YF_SYMBOL: Record<string, string> = {
+  xau: "GC=F", // Gold Futures
+  xag: "SI=F", // Silver Futures
+  xap: "PL=F", // Platinum Futures
+  xpd: "PA=F", // Palladium Futures
+};
 
 export function AccountFormPage({
   open,
@@ -74,7 +81,10 @@ export function AccountFormPage({
 
   // Investment form state
   const [units, setUnits] = useState("");
-  const [pricePerUnit, setPricePerUnit] = useState("1");
+  const [originalPrice, setOriginalPrice] = useState(0);
+  const [currency, setCurrency] = useState("TWD");
+  const [exchangeRate, setExchangeRate] = useState(1);
+  const [showPriceDetail, setShowPriceDetail] = useState(false);
 
   // Stock picker state
   const [showStockPicker, setShowStockPicker] = useState(false);
@@ -88,9 +98,10 @@ export function AccountFormPage({
 
   const computedValue = useMemo(() => {
     const u = parseFloat(units) || 0;
-    const p = parseFloat(pricePerUnit) || 0;
-    return u * p;
-  }, [units, pricePerUnit]);
+    if (!hasStockPicker) return u;
+    const priceTWD = currency === "TWD" ? originalPrice : originalPrice * exchangeRate;
+    return u * priceTWD;
+  }, [units, originalPrice, currency, exchangeRate, hasStockPicker]);
 
   useEffect(() => {
     if (open) {
@@ -98,9 +109,12 @@ export function AccountFormPage({
       setIncludeInChart(true);
       setNote("");
       setSelectedStock(null);
+      setOriginalPrice(0);
+      setCurrency("TWD");
+      setExchangeRate(1);
+      setShowPriceDetail(false);
       if (isInvestment) {
         setUnits(editItem ? String(editItem.value) : "");
-        setPricePerUnit("1");
       } else {
         setBalance(editItem ? String(editItem.value) : "");
       }
@@ -112,25 +126,53 @@ export function AccountFormPage({
     if (!name) setName(stock.name);
 
     // Build Yahoo Finance symbol: 台股 → code.TW, 台灣興櫃 → code.TWO, 加密貨幣 → code-USD, 美股 → code as-is
-    const suffix =
-      subCategoryName === "台股"
-        ? ".TW"
-        : subCategoryName === "台灣興櫃"
-          ? ".TWO"
-          : subCategoryName === "加密貨幣"
-            ? "-USD"
-            : "";
-    const yfSymbol = stock.code + suffix;
+    // 貴金屬 → use predefined mapping (xau→XAU=X, etc.); unmapped metals skip price fetch
+    let yfSymbol: string;
+    if (subCategoryName === "貴金屬") {
+      yfSymbol = METAL_YF_SYMBOL[stock.code.toLowerCase()] ?? "";
+    } else {
+      const suffix =
+        subCategoryName === "台股"
+          ? ".TW"
+          : subCategoryName === "台灣興櫃"
+            ? ".TWO"
+            : subCategoryName === "加密貨幣"
+              ? "-USD"
+              : "";
+      yfSymbol = stock.code + suffix;
+    }
+
+    if (!yfSymbol) {
+      setOriginalPrice(0);
+      setCurrency("TWD");
+      setExchangeRate(1);
+      return;
+    }
 
     setPriceLoading(true);
     fetch(`/api/stocks/price?symbol=${encodeURIComponent(yfSymbol)}`)
       .then((r) => r.json())
-      .then((data) => {
-        if (typeof data.price === "number") setPricePerUnit(String(data.price));
+      .then(async (data) => {
+        if (typeof data.price !== "number") return;
+        const fetchedPrice = data.price as number;
+        const fetchedCurrency = (data.currency as string) ?? "USD";
+        setOriginalPrice(fetchedPrice);
+        setCurrency(fetchedCurrency);
+        if (fetchedCurrency !== "TWD") {
+          try {
+            const fxRes = await fetch(
+              `/api/stocks/price?symbol=${encodeURIComponent(fetchedCurrency + "TWD=X")}`
+            );
+            const fxData = await fxRes.json();
+            if (typeof fxData.price === "number") setExchangeRate(fxData.price as number);
+          } catch {
+            /* keep rate = 1 */
+          }
+        } else {
+          setExchangeRate(1);
+        }
       })
-      .catch(() => {
-        /* keep manual input if fetch fails */
-      })
+      .catch(() => {})
       .finally(() => setPriceLoading(false));
   };
 
@@ -248,30 +290,24 @@ export function AccountFormPage({
                   </div>
                 </div>
 
-                {/* Price per unit + computed total */}
-                <div className="flex items-center justify-between px-5 pb-4">
-                  <div className="flex items-center gap-1 rounded-lg bg-[#f2f2f7] px-3 py-1.5">
+                {/* Computed total — display only, tap to expand detail */}
+                <button
+                  onClick={() => hasStockPicker && setShowPriceDetail((v) => !v)}
+                  className="flex w-full items-center px-5 pb-4"
+                >
+                  <div className="rounded-lg bg-[#f2f2f7] px-3 py-1.5">
                     {priceLoading ? (
                       <span className="text-[13px] text-[#8e8e93]">查詢中...</span>
                     ) : (
-                      <>
-                        <span className="text-[13px] font-medium text-[#1c1c1e]">每股&nbsp;</span>
-                        <input
-                          type="number"
-                          value={pricePerUnit}
-                          onChange={(e) => setPricePerUnit(e.target.value)}
-                          className="w-20 bg-transparent text-[13px] font-semibold text-[#1c1c1e] outline-none"
-                        />
-                      </>
+                      <span className="text-[13px] text-[#8e8e93]">
+                        =&nbsp;TWD&nbsp;
+                        <span className="font-semibold text-[#1c1c1e]">
+                          {computedValue.toLocaleString()}
+                        </span>
+                      </span>
                     )}
                   </div>
-                  <p className="text-[13px] text-[#8e8e93]">
-                    =&nbsp;TWD&nbsp;
-                    <span className="font-semibold text-[#1c1c1e]">
-                      {computedValue.toLocaleString()}
-                    </span>
-                  </p>
-                </div>
+                </button>
               </>
             ) : (
               /* Standard balance */
@@ -342,6 +378,27 @@ export function AccountFormPage({
               />
             </div>
           </div>
+
+          {/* Price detail panel — shown when user taps the computed total */}
+          {showPriceDetail && !priceLoading && originalPrice > 0 && (
+            <div className="mt-3 space-y-2">
+              <div className="rounded-2xl bg-white px-5 py-4 shadow-sm">
+                <p className="text-[13px] text-[#8e8e93]">Price ({currency})</p>
+                <p className="mt-1 text-[22px] font-bold text-[#1c1c1e]">
+                  {originalPrice.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 8,
+                  })}
+                </p>
+              </div>
+              {currency !== "TWD" && (
+                <div className="rounded-2xl bg-white px-5 py-4 shadow-sm">
+                  <p className="text-[13px] text-[#8e8e93]">Rate ({currency} → TWD)</p>
+                  <p className="mt-1 text-[22px] font-bold text-[#1c1c1e]">{exchangeRate}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Recurrences section */}
           <div className="mt-6 flex items-center justify-between">

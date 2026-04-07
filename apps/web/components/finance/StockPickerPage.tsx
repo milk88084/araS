@@ -40,6 +40,16 @@ async function fetchCryptoList(): Promise<StockItem[]> {
   return res.json() as Promise<StockItem[]>;
 }
 
+const PRECIOUS_METALS: StockItem[] = [
+  { code: "twgd", name: "Taiwan gold (tael) (New Taiwan Dollar/Taiwan tael)" },
+  { code: "twgdg", name: "Taiwan gold (gram) (New Taiwan Dollar/Gram)" },
+  { code: "gt", name: "Hongkong gold (Hong Kong Dollar/Ounce)" },
+  { code: "xau", name: "Spot gold (U.S. Dollar/Ounce)" },
+  { code: "xpd", name: "Spot palladium (U.S. Dollar/Ounce)" },
+  { code: "xag", name: "Spot silver (U.S. Dollar/Ounce)" },
+  { code: "xap", name: "Spot platinum (U.S. Dollar/Ounce)" },
+];
+
 export function StockPickerPage({ open, onClose, onSelect, market, color }: Props) {
   const [stocks, setStocks] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,6 +59,10 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
   const fetchedMarket = useRef<string | null>(null);
 
   const fetchStocks = (targetMarket: string) => {
+    if (targetMarket === "貴金屬") {
+      setStocks(PRECIOUS_METALS);
+      return;
+    }
     setLoading(true);
     setError(null);
     const fetcher =
@@ -141,7 +155,13 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
                     style={{ backgroundColor: color + "20" }}
                   >
                     <span className="text-[11px] font-bold" style={{ color }}>
-                      {market === "美股" ? "US" : market === "加密貨幣" ? "₿" : "TW"}
+                      {market === "美股"
+                        ? "US"
+                        : market === "加密貨幣"
+                          ? "₿"
+                          : market === "貴金屬"
+                            ? "Au"
+                            : "TW"}
                     </span>
                   </div>
                   <div>
