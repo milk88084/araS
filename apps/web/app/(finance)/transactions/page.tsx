@@ -37,17 +37,14 @@ export default function TransactionsPage() {
     if (tab === "liquidity") {
       const totalIncome = liquidityData.reduce((s, d) => s + d.income, 0);
       const totalExpense = liquidityData.reduce((s, d) => s + d.expense, 0);
-      return [
-        `Total income is ${formatCurrency(totalIncome)}`,
-        `Total expense is ${formatCurrency(totalExpense)}`,
-      ];
+      return [`總收入 ${formatCurrency(totalIncome)}`, `總支出 ${formatCurrency(totalExpense)}`];
     }
     const firstWithData = investmentData.find((d) => d.totalAssets > 0);
     const last = investmentData.at(-1);
     const change = (last?.totalAssets ?? 0) - (firstWithData?.totalAssets ?? 0);
     return [
-      `Total account change is ${formatCurrency(change)}`,
-      `Total profit is ${formatCurrency(last?.netWorth ?? 0)}`,
+      `資產總變化 ${formatCurrency(change)}`,
+      `帳面淨值 ${formatCurrency(last?.netWorth ?? 0)}`,
     ];
   }, [tab, liquidityData, investmentData]);
 
@@ -69,7 +66,7 @@ export default function TransactionsPage() {
               color: tab === t ? "white" : "#8e8e93",
             }}
           >
-            {t === "investment" ? "My Investment" : "My Liquidity"}
+            {t === "investment" ? "投資損益" : "收支"}
           </button>
         ))}
       </div>

@@ -39,8 +39,8 @@ export function PnlChart({ data }: { data: LiquidityPoint[] }) {
             verticalAlign="top"
             align="left"
           />
-          <Bar dataKey="income" name="Income" fill="#34c759" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="expense" name="Expense" fill="#c7c7cc" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="income" name="收入" fill="#34c759" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="expense" name="支出" fill="#c7c7cc" radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
