@@ -6,7 +6,7 @@
 
 **Architecture:** Pure frontend, localStorage-based. A new `ValueSnapshot` type is auto-recorded to the store whenever assets/liabilities change, enabling the Investment chart. A pure aggregation utility module groups raw store data into chart-ready points. Two presentational chart components receive aggregated data as props.
 
-**Tech Stack:** Next.js 15, React 19, Recharts 2.x, Zustand (persist), Zod, Vitest + jsdom
+**Tech Stack:** Next.js 15, React 19, Recharts 3.x, Zustand (persist), Zod, Vitest + jsdom
 
 ---
 
