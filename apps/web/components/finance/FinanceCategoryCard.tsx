@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Wallet } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { formatCurrency } from "../../lib/format";
 
 export interface CategoryItem {
@@ -13,21 +14,39 @@ export interface CategoryItem {
 
 interface Props {
   name: string;
+  color: string;
   items: CategoryItem[];
   isLiability?: boolean;
+  getItemIcon?: (itemName: string) => LucideIcon;
   onEditItem?: (item: CategoryItem) => void;
   onDeleteItem?: (id: string) => Promise<void>;
 }
 
 function formatDate(iso: string) {
   const d = new Date(iso);
-  return `${d.getMonth() + 1}月${d.getDate()}日`;
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
 }
 
 export function FinanceCategoryCard({
   name,
+  color,
   items,
   isLiability = false,
+  getItemIcon,
   onEditItem,
   onDeleteItem,
 }: Props) {
@@ -49,108 +68,136 @@ export function FinanceCategoryCard({
     setConfirmDeleteId(null);
   };
 
-  return (
-    <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-      {/* Card header */}
-      <div className="flex items-start justify-between px-4 py-4">
-        <div className="min-w-0 flex-1 pr-4">
-          <p className="text-[17px] font-semibold text-[#1c1c1e]">{name}</p>
-          <p className="mt-0.5 truncate text-[13px] text-[#8e8e93]">
-            {items.map((i) => i.name).join(" · ")}
-          </p>
-        </div>
-        <div className="shrink-0 text-right">
-          <p className="text-[17px] font-semibold text-[#1c1c1e]">
-            {isLiability && <span className="text-[#ff3b30]">-&nbsp;</span>}
-            {formatCurrency(total)}
-          </p>
-          {lastUpdated && (
-            <p className="mt-0.5 text-[11px] text-[#8e8e93]">{formatDate(lastUpdated)} 更新</p>
-          )}
-        </div>
-      </div>
-
-      {/* Expand toggle */}
-      <div className="border-t border-[#f2f2f7] px-4 py-2.5">
+  if (expanded) {
+    return (
+      <div>
+        {/* Colored header */}
         <button
-          onClick={() => setExpanded((v) => !v)}
-          className="text-[13px] font-medium text-[#8e8e93]"
+          onClick={() => setExpanded(false)}
+          className="w-full rounded-2xl px-5 py-4 text-left active:opacity-80"
+          style={{ backgroundColor: color }}
         >
-          {expanded ? "收起 ▲" : `··· ${items.length} 項明細`}
+          <div className="flex items-center justify-between">
+            <p className="text-[18px] font-bold text-[#1c1c1e]">{name}</p>
+            <p className="text-[20px] font-bold text-[#1c1c1e]">
+              {isLiability && <span className="text-[#ff3b30]">-</span>}
+              {formatCurrency(total)}
+            </p>
+          </div>
         </button>
-      </div>
 
-      {/* Expanded items */}
-      {expanded && (
-        <div className="border-t border-[#f2f2f7]">
-          {items.map((item, i) => {
+        {/* Sub-item cards */}
+        <div className="mt-2 space-y-2">
+          {items.map((item) => {
+            const Icon = getItemIcon?.(item.name) ?? Wallet;
             const isConfirming = confirmDeleteId === item.id;
             const isDeleting = deletingId === item.id;
 
             return (
-              <div
-                key={item.id}
-                className={`flex items-center justify-between px-4 py-3 ${
-                  i !== items.length - 1 ? "border-b border-[#f2f2f7]" : ""
-                }`}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] text-[#1c1c1e]">{item.name}</p>
-                  <p className="text-[12px] text-[#8e8e93]">{formatDate(item.updatedAt)} 更新</p>
-                </div>
-
-                <div className="ml-3 flex items-center gap-2">
-                  <p
-                    className={`text-[14px] font-medium ${
-                      isLiability ? "text-[#ff3b30]" : "text-[#1c1c1e]"
-                    }`}
+              <div key={item.id} className="rounded-2xl bg-white px-4 py-3.5 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: color + "25" }}
                   >
-                    {formatCurrency(item.value)}
-                  </p>
+                    <Icon size={20} style={{ color }} />
+                  </div>
 
-                  {/* Actions */}
-                  {isConfirming ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        disabled={isDeleting}
-                        className="rounded-lg bg-[#ff3b30] px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
-                      >
-                        {isDeleting ? "刪除中" : "確認"}
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteId(null)}
-                        className="rounded-lg bg-[#f2f2f7] px-2.5 py-1 text-[11px] font-semibold text-[#8e8e93]"
-                      >
-                        取消
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      {onEditItem && (
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-semibold" style={{ color }}>
+                      {item.name}
+                    </p>
+                    <p className="text-[12px] text-[#8e8e93]">
+                      Updated on {formatDate(item.updatedAt)}
+                    </p>
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    {isConfirming ? (
+                      <div className="flex items-center gap-1">
                         <button
-                          onClick={() => onEditItem(item)}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f2f2f7] transition-colors active:bg-[#e5e5ea]"
+                          onClick={() => handleDelete(item.id)}
+                          disabled={isDeleting}
+                          className="rounded-lg bg-[#ff3b30] px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
                         >
-                          <Pencil size={12} className="text-[#8e8e93]" />
+                          {isDeleting ? "刪除中" : "確認"}
                         </button>
-                      )}
-                      {onDeleteItem && (
                         <button
-                          onClick={() => setConfirmDeleteId(item.id)}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f2f2f7] transition-colors active:bg-[#e5e5ea]"
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="rounded-lg bg-[#f2f2f7] px-2.5 py-1 text-[11px] font-semibold text-[#8e8e93]"
                         >
-                          <Trash2 size={12} className="text-[#ff3b30]" />
+                          取消
                         </button>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    ) : (
+                      <>
+                        <p
+                          className="text-[16px] font-bold"
+                          style={{ color: isLiability ? "#ff3b30" : color }}
+                        >
+                          {isLiability && "-"}
+                          {formatCurrency(item.value)}
+                        </p>
+                        <div className="mt-1 flex items-center justify-end gap-1">
+                          {onEditItem && (
+                            <button
+                              onClick={() => onEditItem(item)}
+                              className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#f2f2f7] active:bg-[#e5e5ea]"
+                            >
+                              <Pencil size={11} className="text-[#8e8e93]" />
+                            </button>
+                          )}
+                          {onDeleteItem && (
+                            <button
+                              onClick={() => setConfirmDeleteId(item.id)}
+                              className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#f2f2f7] active:bg-[#e5e5ea]"
+                            >
+                              <Trash2 size={11} className="text-[#ff3b30]" />
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
-      )}
-    </div>
+      </div>
+    );
+  }
+
+  // Collapsed
+  return (
+    <button
+      onClick={() => setExpanded(true)}
+      className="w-full rounded-2xl bg-white px-5 py-4 text-left shadow-sm active:bg-[#f2f2f7]"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-[18px] font-bold text-[#1c1c1e]">{name}</p>
+          <p className="mt-0.5 truncate text-[13px] text-[#8e8e93]">
+            {items.map((i) => i.name).join(", ")}
+          </p>
+          <div className="mt-2.5 flex gap-1">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-1.5 w-1.5 rounded-full bg-[#c7c7cc]" />
+            ))}
+          </div>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-[20px] font-bold text-[#1c1c1e]">
+            {isLiability && <span className="text-[#ff3b30]">-</span>}
+            {formatCurrency(total)}
+          </p>
+          {lastUpdated && (
+            <p className="mt-0.5 text-[12px] text-[#8e8e93]">
+              Updated on {formatDate(lastUpdated)}
+            </p>
+          )}
+        </div>
+      </div>
+    </button>
   );
 }

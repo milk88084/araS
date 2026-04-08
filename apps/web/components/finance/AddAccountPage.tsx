@@ -141,31 +141,18 @@ export function AddAccountPage({ open, onClose, onSelectCategory }: Props) {
             {CATEGORIES.map((topCat) => {
               const isExpanded = expandedCategory === topCat.name;
               return (
-                <div key={topCat.name} className="overflow-hidden rounded-2xl bg-white shadow-sm">
+                <div key={topCat.name} className="overflow-hidden rounded-2xl shadow-sm">
                   {/* Category header — tap to expand/collapse */}
                   <button
                     onClick={() => handleTopCategoryClick(topCat)}
-                    className="flex w-full items-center justify-between px-5 py-4 active:opacity-70"
-                    style={{ backgroundColor: isExpanded ? topCat.color : undefined }}
+                    className="flex w-full items-center justify-between px-5 py-5 active:opacity-80"
+                    style={{ backgroundColor: topCat.color }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="h-3 w-3 rounded-full"
-                        style={{
-                          backgroundColor: isExpanded ? "rgba(255,255,255,0.8)" : topCat.color,
-                        }}
-                      />
-                      <p
-                        className="text-[17px] font-semibold"
-                        style={{ color: isExpanded ? "#ffffff" : "#1c1c1e" }}
-                      >
-                        {topCat.name}
-                      </p>
-                    </div>
+                    <p className="text-[18px] font-semibold text-[#1c1c1e]">{topCat.name}</p>
                     {isExpanded ? (
-                      <ChevronDown size={18} style={{ color: "rgba(255,255,255,0.8)" }} />
+                      <ChevronDown size={18} className="text-[#1c1c1e] opacity-60" />
                     ) : (
-                      <ChevronRight size={18} className="text-[#c7c7cc]" />
+                      <ChevronRight size={18} className="text-[#1c1c1e] opacity-60" />
                     )}
                   </button>
 

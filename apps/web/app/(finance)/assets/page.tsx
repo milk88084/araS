@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, PieChart } from "lucide-react";
+import { Plus, Eye, EyeOff } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Wallet } from "lucide-react";
 import type { Asset, Liability } from "@repo/shared";
@@ -11,10 +11,13 @@ import {
   FinanceCategoryCard,
   type CategoryItem,
 } from "../../../components/finance/FinanceCategoryCard";
-import { AssetTreemap } from "../../../components/finance/AssetTreemap";
 import { AddAccountPage } from "../../../components/finance/AddAccountPage";
 import { AccountFormPage } from "../../../components/finance/AccountFormPage";
-import { getNodeIcon, getTopCategory } from "../../../components/finance/categoryConfig";
+import {
+  CATEGORIES,
+  getNodeIcon,
+  getTopCategory,
+} from "../../../components/finance/categoryConfig";
 
 interface FormConfig {
   topCategory: string;
@@ -35,43 +38,40 @@ export default function AssetsPage() {
   const { fetchAll, assets, liabilities, loading, deleteAsset, deleteLiability } =
     useFinanceStore();
 
-  const [showChart, setShowChart] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
   const [editItem, setEditItem] = useState<EditItem | null>(null);
+  const [hideBalance, setHideBalance] = useState(false);
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
-  const totalAssets = assets.reduce((sum, a) => sum + a.value, 0);
-  const totalLiabilities = liabilities.reduce((sum, l) => sum + l.balance, 0);
-  const netWorth = totalAssets - totalLiabilities;
+  const netWorth =
+    assets.reduce((s, a) => s + a.value, 0) - liabilities.reduce((s, l) => s + l.balance, 0);
 
-  // Group assets by category
   const groupedAssets = assets.reduce<Record<string, Asset[]>>((acc, a) => {
     (acc[a.category] ??= []).push(a);
     return acc;
   }, {});
 
-  // Group liabilities by category
   const groupedLiabilities = liabilities.reduce<Record<string, Liability[]>>((acc, l) => {
     (acc[l.category] ??= []).push(l);
     return acc;
   }, {});
 
-  // Treemap data
-  const treemapItems = [
-    ...Object.entries(groupedAssets).map(([name, items]) => ({
-      name,
-      value: items.reduce((s, a) => s + a.value, 0),
-    })),
-    ...Object.entries(groupedLiabilities).map(([name, items]) => ({
-      name,
-      value: items.reduce((s, l) => s + l.balance, 0),
-    })),
-  ];
+  // Merge into ordered list, only categories with data
+  const categoriesWithData = CATEGORIES.map((cat) => {
+    const assetItems = groupedAssets[cat.name] ?? [];
+    const liabilityItems = groupedLiabilities[cat.name] ?? [];
+    const total =
+      assetItems.reduce((s, a) => s + a.value, 0) +
+      liabilityItems.reduce((s, l) => s + l.balance, 0);
+    return { ...cat, total, assetItems, liabilityItems };
+  }).filter((c) => c.total > 0);
+
+  const barTotal = categoriesWithData.reduce((s, c) => s + c.total, 0);
 
   const openFormForNew = (
     topCategory: string,
@@ -82,8 +82,6 @@ export default function AssetsPage() {
   ) => {
     setFormConfig({ topCategory, isLiability, color, subCategoryName, SubCategoryIcon: icon });
     setEditItem(null);
-    // Keep showMenu open — AccountFormPage slides in on top (z-70 > z-60)
-    // so there's no flicker from simultaneous slide-in + slide-out
     setShowForm(true);
   };
 
@@ -107,14 +105,12 @@ export default function AssetsPage() {
     setShowForm(true);
   };
 
-  // Back button on AccountFormPage — close form only, reveal AddAccountPage underneath
   const closeForm = () => {
     setShowForm(false);
     setFormConfig(null);
     setEditItem(null);
   };
 
-  // After save — close form and menu together
   const closeAll = () => {
     setShowForm(false);
     setShowMenu(false);
@@ -131,80 +127,85 @@ export default function AssetsPage() {
   }
 
   return (
-    <div className="px-4 pt-6">
+    <div className="pt-6">
       {/* Header */}
-      <div className="mb-5 flex items-start justify-between">
+      <div className="mb-6 flex items-start justify-between px-4">
         <div>
-          <p className="text-[13px] text-[#8e8e93]">我的淨資產 (TWD)</p>
-          <p className="mt-0.5 text-[36px] font-bold tracking-tight text-[#1c1c1e]">
-            {formatCurrency(netWorth)}
-          </p>
-          <div className="mt-1 flex gap-3 text-[12px]">
-            <span className="text-[#34c759]">資產 {formatCurrency(totalAssets)}</span>
-            <span className="text-[#ff3b30]">負債 {formatCurrency(totalLiabilities)}</span>
-          </div>
-        </div>
-        <div className="flex gap-2 pt-1">
-          {treemapItems.length > 0 && (
-            <button
-              onClick={() => setShowChart((v) => !v)}
-              className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                showChart ? "bg-[#007aff]" : "bg-[#e5e5ea]"
-              }`}
-            >
-              <PieChart size={16} className={showChart ? "text-white" : "text-[#8e8e93]"} />
+          <div className="flex items-center gap-2">
+            <p className="text-[15px] font-semibold text-[#1c1c1e]">Net Worth (TWD)</p>
+            <button onClick={() => setHideBalance((v) => !v)} className="active:opacity-60">
+              {hideBalance ? (
+                <EyeOff size={16} className="text-[#8e8e93]" />
+              ) : (
+                <Eye size={16} className="text-[#8e8e93]" />
+              )}
             </button>
-          )}
-          <button
-            onClick={() => setShowMenu(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#007aff]"
-          >
-            <Plus size={18} className="text-white" />
-          </button>
+          </div>
+          <p className="mt-1 text-[38px] font-bold tracking-tight text-[#1c1c1e]">
+            {hideBalance ? "••••••" : formatCurrency(netWorth)}
+          </p>
         </div>
+        <button
+          onClick={() => setShowMenu(true)}
+          className="flex h-12 w-12 items-center justify-center rounded-full shadow-md active:opacity-80"
+          style={{ backgroundColor: "#5856D6" }}
+        >
+          <Plus size={22} className="text-white" />
+        </button>
       </div>
 
-      {/* Treemap chart */}
-      {showChart && treemapItems.length > 0 && (
-        <div className="mb-4">
-          <AssetTreemap items={treemapItems} />
+      {/* Category list with proportion bar */}
+      {categoriesWithData.length > 0 ? (
+        <div className="flex pb-8">
+          {/* Left proportion bar — flush with screen edge */}
+          <div className="flex w-12 flex-col gap-1.5 pr-1">
+            {categoriesWithData.map((cat) => (
+              <div
+                key={cat.name}
+                className="min-h-[44px] rounded-r-2xl"
+                style={{
+                  backgroundColor: cat.color,
+                  flexGrow: cat.total / barTotal,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Cards */}
+          <div className="flex-1 space-y-3 pr-4">
+            {categoriesWithData.map((cat) => {
+              const isLiability = cat.isLiability;
+              const items: CategoryItem[] = isLiability
+                ? cat.liabilityItems.map((l) => ({
+                    id: l.id,
+                    name: l.name,
+                    value: l.balance,
+                    updatedAt: l.updatedAt,
+                  }))
+                : cat.assetItems.map((a) => ({
+                    id: a.id,
+                    name: a.name,
+                    value: a.value,
+                    updatedAt: a.updatedAt,
+                  }));
+
+              return (
+                <FinanceCategoryCard
+                  key={cat.name}
+                  name={cat.name}
+                  color={cat.color}
+                  items={items}
+                  isLiability={isLiability}
+                  getItemIcon={(itemName) => getNodeIcon(cat.name, itemName)}
+                  onEditItem={(item) => openFormForEdit(item, isLiability)}
+                  onDeleteItem={isLiability ? deleteLiability : deleteAsset}
+                />
+              );
+            })}
+          </div>
         </div>
-      )}
-
-      {/* Category list */}
-      <div className="space-y-3 pb-4">
-        {Object.entries(groupedAssets).map(([category, items]) => (
-          <FinanceCategoryCard
-            key={category}
-            name={category}
-            items={items.map((a) => ({
-              id: a.id,
-              name: a.name,
-              value: a.value,
-              updatedAt: a.updatedAt,
-            }))}
-            onEditItem={(item) => openFormForEdit(item, false)}
-            onDeleteItem={deleteAsset}
-          />
-        ))}
-
-        {Object.entries(groupedLiabilities).map(([category, items]) => (
-          <FinanceCategoryCard
-            key={category}
-            name={category}
-            items={items.map((l) => ({
-              id: l.id,
-              name: l.name,
-              value: l.balance,
-              updatedAt: l.updatedAt,
-            }))}
-            isLiability
-            onEditItem={(item) => openFormForEdit(item, true)}
-            onDeleteItem={deleteLiability}
-          />
-        ))}
-
-        {assets.length === 0 && liabilities.length === 0 && (
+      ) : (
+        <div className="px-4">
           <button
             onClick={() => setShowMenu(true)}
             className="w-full rounded-2xl bg-white px-4 py-12 text-center shadow-sm transition-colors active:bg-[#f2f2f7]"
@@ -212,17 +213,15 @@ export default function AssetsPage() {
             <p className="text-[15px] font-medium text-[#007aff]">+ 新增第一筆資產</p>
             <p className="mt-1 text-[13px] text-[#8e8e93]">記錄你的資產與負債</p>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Full-page category picker */}
       <AddAccountPage
         open={showMenu}
         onClose={() => setShowMenu(false)}
         onSelectCategory={openFormForNew}
       />
 
-      {/* Full-page account form */}
       <AccountFormPage
         open={showForm}
         onClose={closeForm}
