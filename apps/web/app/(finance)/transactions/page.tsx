@@ -38,7 +38,7 @@ export default function TransactionsPage() {
       const totalIncome = liquidityData.reduce((s, d) => s + d.income, 0);
       const totalExpense = liquidityData.reduce((s, d) => s + d.expense, 0);
       return [
-        `Total income is ${formatCurrency(totalIncome)} ,`,
+        `Total income is ${formatCurrency(totalIncome)}`,
         `Total expense is ${formatCurrency(totalExpense)}`,
       ];
     }
@@ -46,7 +46,7 @@ export default function TransactionsPage() {
     const last = investmentData.at(-1);
     const change = (last?.totalAssets ?? 0) - (firstWithData?.totalAssets ?? 0);
     return [
-      `Total account change is ${formatCurrency(change)} ,`,
+      `Total account change is ${formatCurrency(change)}`,
       `Total profit is ${formatCurrency(last?.netWorth ?? 0)}`,
     ];
   }, [tab, liquidityData, investmentData]);
