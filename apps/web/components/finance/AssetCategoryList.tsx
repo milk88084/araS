@@ -2,6 +2,7 @@
 
 import type { Asset } from "@repo/shared";
 import { FinanceCategoryCard } from "./FinanceCategoryCard";
+import { getTopCategory } from "./categoryConfig";
 
 interface Props {
   assets: Asset[];
@@ -25,18 +26,23 @@ export function AssetCategoryList({ assets, loading }: Props) {
 
   return (
     <div className="space-y-3">
-      {Object.entries(grouped).map(([category, items]) => (
-        <FinanceCategoryCard
-          key={category}
-          name={category}
-          items={items.map((a) => ({
-            id: a.id,
-            name: a.name,
-            value: a.value,
-            updatedAt: a.updatedAt,
-          }))}
-        />
-      ))}
+      {Object.entries(grouped).map(([category, items]) => {
+        const topCategory = getTopCategory(category);
+        const color = topCategory?.color ?? "#007aff";
+        return (
+          <FinanceCategoryCard
+            key={category}
+            name={category}
+            color={color}
+            items={items.map((a) => ({
+              id: a.id,
+              name: a.name,
+              value: a.value,
+              updatedAt: a.updatedAt,
+            }))}
+          />
+        );
+      })}
     </div>
   );
 }

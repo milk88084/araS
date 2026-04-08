@@ -2,6 +2,7 @@
 
 import type { Liability } from "@repo/shared";
 import { FinanceCategoryCard } from "./FinanceCategoryCard";
+import { getTopCategory } from "./categoryConfig";
 
 interface Props {
   liabilities: Liability[];
@@ -25,19 +26,24 @@ export function LiabilityCategoryList({ liabilities, loading }: Props) {
 
   return (
     <div className="space-y-3">
-      {Object.entries(grouped).map(([category, items]) => (
-        <FinanceCategoryCard
-          key={category}
-          name={category}
-          items={items.map((l) => ({
-            id: l.id,
-            name: l.name,
-            value: l.balance,
-            updatedAt: l.updatedAt,
-          }))}
-          isLiability
-        />
-      ))}
+      {Object.entries(grouped).map(([category, items]) => {
+        const topCategory = getTopCategory(category);
+        const color = topCategory?.color ?? "#007aff";
+        return (
+          <FinanceCategoryCard
+            key={category}
+            name={category}
+            color={color}
+            items={items.map((l) => ({
+              id: l.id,
+              name: l.name,
+              value: l.balance,
+              updatedAt: l.updatedAt,
+            }))}
+            isLiability
+          />
+        );
+      })}
     </div>
   );
 }
