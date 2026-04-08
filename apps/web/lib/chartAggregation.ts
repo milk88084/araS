@@ -30,12 +30,12 @@ const MONTHS = [
 ] as const;
 
 function getMondayOfWeek(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
+  const day = date.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const monday = new Date(date);
+  monday.setUTCDate(date.getUTCDate() + diff);
+  monday.setUTCHours(0, 0, 0, 0);
+  return monday;
 }
 
 /** Returns an internal grouping key for a date given a range. */
@@ -105,7 +105,7 @@ export function aggregateTransactions(transactions: Transaction[], range: Range)
     if (!map.has(key)) continue;
     const entry = map.get(key)!;
     if (t.type === "income") entry.income += t.amount;
-    else entry.expense += t.amount;
+    else if (t.type === "expense") entry.expense += t.amount;
   }
 
   return keys.map((key) => ({
