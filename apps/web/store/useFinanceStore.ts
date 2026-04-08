@@ -7,6 +7,7 @@ import type {
   Liability,
   Transaction,
   PortfolioItem,
+  ValueSnapshot,
   CreateAsset,
   UpdateAsset,
   CreateLiability,
@@ -28,6 +29,7 @@ interface FinanceState {
   liabilities: Liability[];
   transactions: Transaction[];
   portfolio: PortfolioItem[];
+  valueSnapshots: ValueSnapshot[];
   loading: boolean;
   error: string | null;
   fetchAll: () => Promise<void>;
@@ -43,6 +45,15 @@ interface FinanceState {
   deletePortfolioItem: (id: string) => Promise<void>;
 }
 
+function makeSnapshot(assets: Asset[], liabilities: Liability[]): ValueSnapshot {
+  return {
+    id: uuid(),
+    date: now(),
+    totalAssets: assets.reduce((s, a) => s + a.value, 0),
+    totalLiabilities: liabilities.reduce((s, l) => s + l.balance, 0),
+  };
+}
+
 export const useFinanceStore = create<FinanceState>()(
   persist(
     (set) => ({
@@ -50,6 +61,7 @@ export const useFinanceStore = create<FinanceState>()(
       liabilities: [],
       transactions: [],
       portfolio: [],
+      valueSnapshots: [],
       loading: false,
       error: null,
 
@@ -66,12 +78,18 @@ export const useFinanceStore = create<FinanceState>()(
           createdAt: now(),
           updatedAt: now(),
         };
-        set((s) => ({ assets: [asset, ...s.assets] }));
+        set((s) => {
+          const newAssets = [asset, ...s.assets];
+          return {
+            assets: newAssets,
+            valueSnapshots: [...s.valueSnapshots, makeSnapshot(newAssets, s.liabilities)],
+          };
+        });
       },
 
       updateAsset: async (id, data) => {
-        set((s) => ({
-          assets: s.assets.map((a) =>
+        set((s) => {
+          const newAssets = s.assets.map((a) =>
             a.id === id
               ? {
                   ...a,
@@ -81,12 +99,22 @@ export const useFinanceStore = create<FinanceState>()(
                   updatedAt: now(),
                 }
               : a
-          ),
-        }));
+          );
+          return {
+            assets: newAssets,
+            valueSnapshots: [...s.valueSnapshots, makeSnapshot(newAssets, s.liabilities)],
+          };
+        });
       },
 
       deleteAsset: async (id) => {
-        set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }));
+        set((s) => {
+          const newAssets = s.assets.filter((a) => a.id !== id);
+          return {
+            assets: newAssets,
+            valueSnapshots: [...s.valueSnapshots, makeSnapshot(newAssets, s.liabilities)],
+          };
+        });
       },
 
       addLiability: async (data) => {
@@ -98,12 +126,18 @@ export const useFinanceStore = create<FinanceState>()(
           createdAt: now(),
           updatedAt: now(),
         };
-        set((s) => ({ liabilities: [liability, ...s.liabilities] }));
+        set((s) => {
+          const newLiabilities = [liability, ...s.liabilities];
+          return {
+            liabilities: newLiabilities,
+            valueSnapshots: [...s.valueSnapshots, makeSnapshot(s.assets, newLiabilities)],
+          };
+        });
       },
 
       updateLiability: async (id, data) => {
-        set((s) => ({
-          liabilities: s.liabilities.map((l) =>
+        set((s) => {
+          const newLiabilities = s.liabilities.map((l) =>
             l.id === id
               ? {
                   ...l,
@@ -113,12 +147,22 @@ export const useFinanceStore = create<FinanceState>()(
                   updatedAt: now(),
                 }
               : l
-          ),
-        }));
+          );
+          return {
+            liabilities: newLiabilities,
+            valueSnapshots: [...s.valueSnapshots, makeSnapshot(s.assets, newLiabilities)],
+          };
+        });
       },
 
       deleteLiability: async (id) => {
-        set((s) => ({ liabilities: s.liabilities.filter((l) => l.id !== id) }));
+        set((s) => {
+          const newLiabilities = s.liabilities.filter((l) => l.id !== id);
+          return {
+            liabilities: newLiabilities,
+            valueSnapshots: [...s.valueSnapshots, makeSnapshot(s.assets, newLiabilities)],
+          };
+        });
       },
 
       addTransaction: async (data) => {
@@ -157,7 +201,7 @@ export const useFinanceStore = create<FinanceState>()(
       },
     }),
     {
-      name: "finance-store", // localStorage key
+      name: "finance-store",
     }
   )
 );
