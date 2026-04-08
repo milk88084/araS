@@ -71,8 +71,6 @@ export default function AssetsPage() {
     return { ...cat, total, assetItems, liabilityItems };
   }).filter((c) => c.total > 0);
 
-  const barTotal = categoriesWithData.reduce((s, c) => s + c.total, 0);
-
   const openFormForNew = (
     topCategory: string,
     isLiability: boolean,
@@ -129,18 +127,18 @@ export default function AssetsPage() {
   return (
     <div className="pt-6">
       {/* Header */}
-      <div className="mb-6 flex items-start justify-between px-4">
+      <div className="flex items-center gap-2">
+        <p className="text-[15px] font-semibold text-[#1c1c1e]">Net Worth (TWD)</p>
+        <button onClick={() => setHideBalance((v) => !v)} className="active:opacity-60">
+          {hideBalance ? (
+            <EyeOff size={16} className="text-[#8e8e93]" />
+          ) : (
+            <Eye size={16} className="text-[#8e8e93]" />
+          )}
+        </button>
+      </div>
+      <div className="mb-6 flex items-center justify-between px-4">
         <div>
-          <div className="flex items-center gap-2">
-            <p className="text-[15px] font-semibold text-[#1c1c1e]">Net Worth (TWD)</p>
-            <button onClick={() => setHideBalance((v) => !v)} className="active:opacity-60">
-              {hideBalance ? (
-                <EyeOff size={16} className="text-[#8e8e93]" />
-              ) : (
-                <Eye size={16} className="text-[#8e8e93]" />
-              )}
-            </button>
-          </div>
           <p className="mt-1 text-[38px] font-bold tracking-tight text-[#1c1c1e]">
             {hideBalance ? "••••••" : formatCurrency(netWorth)}
           </p>
@@ -156,53 +154,43 @@ export default function AssetsPage() {
 
       {/* Category list with proportion bar */}
       {categoriesWithData.length > 0 ? (
-        <div className="flex pb-8">
-          {/* Left proportion bar — flush with screen edge */}
-          <div className="flex w-12 flex-col gap-1.5 pr-1">
-            {categoriesWithData.map((cat) => (
-              <div
-                key={cat.name}
-                className="min-h-[44px] rounded-r-2xl"
-                style={{
-                  backgroundColor: cat.color,
-                  flexGrow: cat.total / barTotal,
-                }}
-              />
-            ))}
-          </div>
+        <div className="flex flex-col gap-3 pr-4 pb-8">
+          {categoriesWithData.map((cat) => {
+            const isLiability = cat.isLiability;
+            const items: CategoryItem[] = isLiability
+              ? cat.liabilityItems.map((l) => ({
+                  id: l.id,
+                  name: l.name,
+                  value: l.balance,
+                  updatedAt: l.updatedAt,
+                }))
+              : cat.assetItems.map((a) => ({
+                  id: a.id,
+                  name: a.name,
+                  value: a.value,
+                  updatedAt: a.updatedAt,
+                }));
 
-          {/* Cards */}
-          <div className="flex-1 space-y-3 pr-4">
-            {categoriesWithData.map((cat) => {
-              const isLiability = cat.isLiability;
-              const items: CategoryItem[] = isLiability
-                ? cat.liabilityItems.map((l) => ({
-                    id: l.id,
-                    name: l.name,
-                    value: l.balance,
-                    updatedAt: l.updatedAt,
-                  }))
-                : cat.assetItems.map((a) => ({
-                    id: a.id,
-                    name: a.name,
-                    value: a.value,
-                    updatedAt: a.updatedAt,
-                  }));
-
-              return (
-                <FinanceCategoryCard
-                  key={cat.name}
-                  name={cat.name}
-                  color={cat.color}
-                  items={items}
-                  isLiability={isLiability}
-                  getItemIcon={(itemName) => getNodeIcon(cat.name, itemName)}
-                  onEditItem={(item) => openFormForEdit(item, isLiability)}
-                  onDeleteItem={isLiability ? deleteLiability : deleteAsset}
+            return (
+              <div key={cat.name} className="flex items-stretch gap-1.5">
+                <div
+                  className="w-12 shrink-0 rounded-r-2xl"
+                  style={{ backgroundColor: cat.color }}
                 />
-              );
-            })}
-          </div>
+                <div className="flex-1">
+                  <FinanceCategoryCard
+                    name={cat.name}
+                    color={cat.color}
+                    items={items}
+                    isLiability={isLiability}
+                    getItemIcon={(itemName) => getNodeIcon(cat.name, itemName)}
+                    onEditItem={(item) => openFormForEdit(item, isLiability)}
+                    onDeleteItem={isLiability ? deleteLiability : deleteAsset}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="px-4">
