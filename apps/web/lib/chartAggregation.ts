@@ -56,8 +56,9 @@ function formatPeriodLabel(key: string, range: Range): string {
     return `${d.getMonth() + 1}/${d.getDate()}`;
   }
   if (range === "4y") return key;
-  const m = parseInt(key.split("-")[1], 10) - 1;
-  return MONTHS[m];
+  const parts = key.split("-");
+  const m = Math.max(0, Math.min(11, parseInt(parts[1] ?? "1", 10) - 1));
+  return MONTHS[m] ?? "Jan";
 }
 
 /** Builds the ordered list of internal period keys for a given range. */
@@ -145,17 +146,20 @@ export function aggregateSnapshots(snapshots: ValueSnapshot[], range: Range): In
 export function getRangeDisplayLabel(range: Range): string {
   const keys = buildPeriods(range);
   if (keys.length === 0) return "";
-  const first = keys[0];
-  const last = keys[keys.length - 1];
+  const first = keys[0]!;
+  const last = keys[keys.length - 1]!;
 
   function keyToDisplay(key: string): string {
     if (range === "5w") {
       const d = new Date(`${key}T00:00:00`);
-      return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+      const monthIdx = Math.max(0, Math.min(11, d.getMonth()));
+      return `${MONTHS[monthIdx] ?? "Jan"} ${d.getDate()}`;
     }
     if (range === "4y") return key;
-    const [year, month] = key.split("-");
-    return `${MONTHS[parseInt(month, 10) - 1]} ${year}`;
+    const parts = key.split("-");
+    const year = parts[0] ?? new Date().getFullYear().toString();
+    const monthIdx = Math.max(0, Math.min(11, parseInt(parts[1] ?? "1", 10) - 1));
+    return `${MONTHS[monthIdx] ?? "Jan"} ${year}`;
   }
 
   return `${keyToDisplay(first)} – ${keyToDisplay(last)}`;
