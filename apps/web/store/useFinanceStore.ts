@@ -67,6 +67,13 @@ export const useFinanceStore = create<FinanceState>()(
 
       fetchAll: async () => {
         // 本地模式：資料已在 localStorage，無需 fetch
+        // 若 valueSnapshots 尚無資料但已有資產/負債，補一筆初始快照
+        set((s) => {
+          if (s.valueSnapshots.length === 0 && (s.assets.length > 0 || s.liabilities.length > 0)) {
+            return { valueSnapshots: [makeSnapshot(s.assets, s.liabilities)] };
+          }
+          return {};
+        });
       },
 
       addAsset: async (data) => {
