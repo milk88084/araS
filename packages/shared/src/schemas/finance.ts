@@ -101,3 +101,12 @@ export const QuoteSchema = z.object({
   currency: z.string(),
 });
 export type Quote = z.infer<typeof QuoteSchema>;
+
+// ValueSnapshot — auto-recorded on every asset/liability mutation
+export const ValueSnapshotSchema = z.object({
+  id: z.string(),
+  date: z.string(), // ISO string, e.g. "2026-04-08T10:00:00.000Z"
+  totalAssets: z.number(),
+  totalLiabilities: z.number(),
+});
+export type ValueSnapshot = z.infer<typeof ValueSnapshotSchema>;
