@@ -156,36 +156,43 @@ export function AddAccountPage({ open, onClose, onSelectCategory }: Props) {
                     )}
                   </button>
 
-                  {/* Sub-category items — visible only when expanded */}
-                  {isExpanded && (
-                    <div className="border-t border-[#f2f2f7]">
-                      {topCat.children.map((node, idx) => {
-                        const Icon = node.icon;
-                        const hasChildren = !!(node.children && node.children.length > 0);
-                        const isLast = idx === topCat.children.length - 1;
-                        return (
-                          <div key={node.name}>
-                            <button
-                              onClick={() => handleSubItemClick(node, topCat)}
-                              className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors active:bg-[#f2f2f7]"
-                            >
-                              <div
-                                className="flex h-9 w-9 items-center justify-center rounded-xl"
-                                style={{ backgroundColor: topCat.color + "20" }}
+                  {/* Sub-category items — smooth height animation via CSS Grid row trick */}
+                  <div
+                    className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+                    style={{ gridTemplateRows: isExpanded ? "1fr" : "0fr" }}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="border-t border-[#f2f2f7]">
+                        {topCat.children.map((node, idx) => {
+                          const Icon = node.icon;
+                          const hasChildren = !!(node.children && node.children.length > 0);
+                          const isLast = idx === topCat.children.length - 1;
+                          return (
+                            <div key={node.name}>
+                              <button
+                                onClick={() => handleSubItemClick(node, topCat)}
+                                className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors active:bg-[#f2f2f7]"
                               >
-                                <Icon size={18} style={{ color: topCat.color }} />
-                              </div>
-                              <p className="flex-1 text-[15px] font-medium text-[#1c1c1e]">
-                                {node.name}
-                              </p>
-                              {hasChildren && <ChevronRight size={16} className="text-[#c7c7cc]" />}
-                            </button>
-                            {!isLast && <div className="mx-5 h-px bg-[#f2f2f7]" />}
-                          </div>
-                        );
-                      })}
+                                <div
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl"
+                                  style={{ backgroundColor: topCat.color + "20" }}
+                                >
+                                  <Icon size={18} style={{ color: topCat.color }} />
+                                </div>
+                                <p className="flex-1 text-[15px] font-medium text-[#1c1c1e]">
+                                  {node.name}
+                                </p>
+                                {hasChildren && (
+                                  <ChevronRight size={16} className="text-[#c7c7cc]" />
+                                )}
+                              </button>
+                              {!isLast && <div className="mx-5 h-px bg-[#f2f2f7]" />}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}
