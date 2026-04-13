@@ -23,7 +23,7 @@ interface Props {
   subCategoryName: string;
   SubCategoryIcon: LucideIcon;
   editItem?: EditItem | null;
-  nameSuggestion?: string;
+  nameSuggestion?: string | undefined;
 }
 
 function getUnitsLabel(subCategoryName: string): string {
@@ -51,6 +51,16 @@ const METAL_YF_SYMBOL: Record<string, string> = {
   xap: "PL=F", // Platinum Futures
   xpd: "PA=F", // Palladium Futures
 };
+
+const PRECIOUS_METALS: StockItem[] = [
+  { code: "twgd", name: "Taiwan gold (tael) (New Taiwan Dollar/Taiwan tael)" },
+  { code: "twgdg", name: "Taiwan gold (gram) (New Taiwan Dollar/Gram)" },
+  { code: "gt", name: "Hongkong gold (Hong Kong Dollar/Ounce)" },
+  { code: "xau", name: "Spot gold (U.S. Dollar/Ounce)" },
+  { code: "xpd", name: "Spot palladium (U.S. Dollar/Ounce)" },
+  { code: "xag", name: "Spot silver (U.S. Dollar/Ounce)" },
+  { code: "xap", name: "Spot platinum (U.S. Dollar/Ounce)" },
+];
 
 export function AccountFormPage({
   open,
@@ -116,85 +126,85 @@ export function AccountFormPage({
     }
 
     // Auto-select stock by name when opening "add" from a detail page
-    if (nameSuggestion && hasStockPicker && !editItem) {
-      let cancelled = false;
-      const run = async () => {
-        let stocks: StockItem[] = [];
-        try {
-          if (subCategoryName === "台股") {
-            const res = await fetch("/api/stocks/tw");
-            const data: Record<string, string>[] = await res.json();
-            stocks = data
-              .map((item) => ({
-                code: item["公司代號"] ?? "",
-                name: item["公司簡稱"] ?? item["公司名稱"] ?? "",
-              }))
-              .filter((s) => s.code && s.name);
-          } else if (subCategoryName === "美股") {
-            const res = await fetch("/api/stocks/us");
-            stocks = (await res.json()) as StockItem[];
-          } else if (subCategoryName === "加密貨幣") {
-            const res = await fetch("/api/stocks/crypto");
-            stocks = (await res.json()) as StockItem[];
-          } else if (subCategoryName === "貴金屬") {
-            stocks = PRECIOUS_METALS;
-          }
-        } catch {
-          return;
+    if (!nameSuggestion || !hasStockPicker || editItem) return;
+
+    let cancelled = false;
+    const run = async () => {
+      let stocks: StockItem[] = [];
+      try {
+        if (subCategoryName === "台股") {
+          const res = await fetch("/api/stocks/tw");
+          const data: Record<string, string>[] = await res.json();
+          stocks = data
+            .map((item) => ({
+              code: item["公司代號"] ?? "",
+              name: item["公司簡稱"] ?? item["公司名稱"] ?? "",
+            }))
+            .filter((s) => s.code && s.name);
+        } else if (subCategoryName === "美股") {
+          const res = await fetch("/api/stocks/us");
+          stocks = (await res.json()) as StockItem[];
+        } else if (subCategoryName === "加密貨幣") {
+          const res = await fetch("/api/stocks/crypto");
+          stocks = (await res.json()) as StockItem[];
+        } else if (subCategoryName === "貴金屬") {
+          stocks = PRECIOUS_METALS;
         }
+      } catch {
+        return;
+      }
+      if (cancelled) return;
+
+      const match = stocks.find((s) => s.name === nameSuggestion);
+      if (!match) return;
+
+      setSelectedStock(match);
+
+      let yfSymbol = "";
+      if (subCategoryName === "貴金屬") {
+        yfSymbol = METAL_YF_SYMBOL[match.code.toLowerCase()] ?? "";
+      } else {
+        const suffix =
+          subCategoryName === "台股" ? ".TW" : subCategoryName === "加密貨幣" ? "-USD" : "";
+        yfSymbol = match.code + suffix;
+      }
+      if (!yfSymbol) return;
+
+      setPriceLoading(true);
+      try {
+        const r = await fetch(`/api/stocks/price?symbol=${encodeURIComponent(yfSymbol)}`);
+        const priceData = await r.json();
         if (cancelled) return;
-
-        const match = stocks.find((s) => s.name === nameSuggestion);
-        if (!match) return;
-
-        setSelectedStock(match);
-
-        let yfSymbol = "";
-        if (subCategoryName === "貴金屬") {
-          yfSymbol = METAL_YF_SYMBOL[match.code.toLowerCase()] ?? "";
-        } else {
-          const suffix =
-            subCategoryName === "台股" ? ".TW" : subCategoryName === "加密貨幣" ? "-USD" : "";
-          yfSymbol = match.code + suffix;
-        }
-        if (!yfSymbol) return;
-
-        setPriceLoading(true);
-        try {
-          const r = await fetch(`/api/stocks/price?symbol=${encodeURIComponent(yfSymbol)}`);
-          const priceData = await r.json();
-          if (cancelled) return;
-          if (typeof priceData.price === "number") {
-            const fetchedPrice = priceData.price as number;
-            const fetchedCurrency = (priceData.currency as string) ?? "USD";
-            setOriginalPrice(fetchedPrice);
-            setCurrency(fetchedCurrency);
-            if (fetchedCurrency !== "TWD") {
-              try {
-                const fxRes = await fetch(
-                  `/api/stocks/price?symbol=${encodeURIComponent(fetchedCurrency + "TWD=X")}`
-                );
-                const fxData = await fxRes.json();
-                if (!cancelled && typeof fxData.price === "number")
-                  setExchangeRate(fxData.price as number);
-              } catch {
-                /* keep rate = 1 */
-              }
-            } else {
-              setExchangeRate(1);
+        if (typeof priceData.price === "number") {
+          const fetchedPrice = priceData.price as number;
+          const fetchedCurrency = (priceData.currency as string) ?? "USD";
+          setOriginalPrice(fetchedPrice);
+          setCurrency(fetchedCurrency);
+          if (fetchedCurrency !== "TWD") {
+            try {
+              const fxRes = await fetch(
+                `/api/stocks/price?symbol=${encodeURIComponent(fetchedCurrency + "TWD=X")}`
+              );
+              const fxData = await fxRes.json();
+              if (!cancelled && typeof fxData.price === "number")
+                setExchangeRate(fxData.price as number);
+            } catch {
+              /* keep rate = 1 */
             }
+          } else {
+            setExchangeRate(1);
           }
-        } catch {
-          /* ignore */
-        } finally {
-          if (!cancelled) setPriceLoading(false);
         }
-      };
-      run();
-      return () => {
-        cancelled = true;
-      };
-    }
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setPriceLoading(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [open, editItem, nameSuggestion, isInvestment, hasStockPicker, subCategoryName]);
 
   const handleSelectStock = (stock: StockItem) => {

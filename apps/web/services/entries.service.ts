@@ -11,8 +11,8 @@ export class EntriesService {
   }
 
   async create(data: CreateEntry) {
-    const { units, ...entryData } = data;
-    const entry = await prisma.entry.create({ data: entryData });
+    const { units, stockCode, ...rest } = data;
+    const entry = await prisma.entry.create({ data: { ...rest, stockCode: stockCode ?? null } });
     await prisma.entryHistory.create({
       data: { entryId: entry.id, delta: entry.value, balance: entry.value, units: units ?? null },
     });
