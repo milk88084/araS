@@ -240,7 +240,7 @@ export default function AssetsPage() {
         subCategoryName={formConfig?.subCategoryName ?? ""}
         SubCategoryIcon={formConfig?.SubCategoryIcon ?? Wallet}
         editItem={editItem}
-        nameSuggestion={!editItem ? detailEntry?.name : undefined}
+        {...(!editItem && detailEntry?.name ? { nameSuggestion: detailEntry.name } : {})}
       />
     </div>
   );
