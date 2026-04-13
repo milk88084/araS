@@ -8,22 +8,16 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Asset {
-  id        String   @id @default(cuid())
-  name      String
-  category  String
-  value     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+model Entry {
+  id          String   @id @default(cuid())
+  name        String
+  topCategory String
+  subCategory String
+  value       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-model Liability {
-  id        String   @id @default(cuid())
-  name      String
-  category  String
-  balance   Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@index([topCategory])
 }
 
 model Transaction {

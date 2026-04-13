@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus, Eye, EyeOff } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Wallet } from "lucide-react";
-import type { Asset, Liability } from "@repo/shared";
+import type { Entry } from "@repo/shared";
 import { useFinanceStore } from "../../../store/useFinanceStore";
 import { formatCurrency } from "../../../lib/format";
 import {
@@ -35,8 +35,9 @@ interface EditItem {
 }
 
 export default function AssetsPage() {
-  const { fetchAll, assets, liabilities, loading, deleteAsset, deleteLiability } =
-    useFinanceStore();
+  const { fetchAll, entries, loading, deleteEntry } = useFinanceStore();
+  const assets = entries.filter((e) => e.topCategory !== "負債");
+  const liabilities = entries.filter((e) => e.topCategory === "負債");
 
   const [showMenu, setShowMenu] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -49,26 +50,18 @@ export default function AssetsPage() {
   }, [fetchAll]);
 
   const netWorth =
-    assets.reduce((s, a) => s + a.value, 0) - liabilities.reduce((s, l) => s + l.balance, 0);
+    assets.reduce((s, a) => s + a.value, 0) - liabilities.reduce((s, l) => s + l.value, 0);
 
-  const groupedAssets = assets.reduce<Record<string, Asset[]>>((acc, a) => {
-    (acc[a.category] ??= []).push(a);
-    return acc;
-  }, {});
-
-  const groupedLiabilities = liabilities.reduce<Record<string, Liability[]>>((acc, l) => {
-    (acc[l.category] ??= []).push(l);
+  const groupedEntries = entries.reduce<Record<string, Entry[]>>((acc, e) => {
+    (acc[e.topCategory] ??= []).push(e);
     return acc;
   }, {});
 
   // Merge into ordered list, only categories with data
   const categoriesWithData = CATEGORIES.map((cat) => {
-    const assetItems = groupedAssets[cat.name] ?? [];
-    const liabilityItems = groupedLiabilities[cat.name] ?? [];
-    const total =
-      assetItems.reduce((s, a) => s + a.value, 0) +
-      liabilityItems.reduce((s, l) => s + l.balance, 0);
-    return { ...cat, total, assetItems, liabilityItems };
+    const catEntries = groupedEntries[cat.name] ?? [];
+    const total = catEntries.reduce((s, e) => s + e.value, 0);
+    return { ...cat, total, catEntries };
   }).filter((c) => c.total > 0);
 
   const openFormForNew = (
@@ -84,19 +77,18 @@ export default function AssetsPage() {
   };
 
   const openFormForEdit = (item: CategoryItem, isLiability: boolean) => {
-    const topCategory = isLiability
-      ? (liabilities.find((l) => l.id === item.id)?.category ?? "")
-      : (assets.find((a) => a.id === item.id)?.category ?? "");
-
+    const entry = entries.find((e) => e.id === item.id);
+    const topCategory = entry?.topCategory ?? "";
+    const subCategory = entry?.subCategory ?? "";
     const topCat = getTopCategory(topCategory);
     const color = topCat?.color ?? "#007aff";
-    const icon = getNodeIcon(topCategory, item.name);
+    const icon = getNodeIcon(topCategory, subCategory);
 
     setFormConfig({
       topCategory,
       isLiability,
       color,
-      subCategoryName: item.name,
+      subCategoryName: subCategory,
       SubCategoryIcon: icon,
     });
     setEditItem({ id: item.id, name: item.name, value: item.value, category: topCategory });
@@ -157,19 +149,12 @@ export default function AssetsPage() {
         <div className="flex flex-col gap-3 pr-4 pb-8">
           {categoriesWithData.map((cat) => {
             const isLiability = cat.isLiability;
-            const items: CategoryItem[] = isLiability
-              ? cat.liabilityItems.map((l) => ({
-                  id: l.id,
-                  name: l.name,
-                  value: l.balance,
-                  updatedAt: l.updatedAt,
-                }))
-              : cat.assetItems.map((a) => ({
-                  id: a.id,
-                  name: a.name,
-                  value: a.value,
-                  updatedAt: a.updatedAt,
-                }));
+            const items: CategoryItem[] = cat.catEntries.map((e) => ({
+              id: e.id,
+              name: e.name,
+              value: e.value,
+              updatedAt: e.updatedAt,
+            }));
 
             return (
               <div key={cat.name} className="flex items-stretch gap-1.5">
@@ -183,9 +168,12 @@ export default function AssetsPage() {
                     color={cat.color}
                     items={items}
                     isLiability={isLiability}
-                    getItemIcon={(itemName) => getNodeIcon(cat.name, itemName)}
+                    getItemIcon={(itemName) => {
+                      const entry = cat.catEntries.find((e) => e.name === itemName);
+                      return getNodeIcon(cat.name, entry?.subCategory ?? itemName);
+                    }}
                     onEditItem={(item) => openFormForEdit(item, isLiability)}
-                    onDeleteItem={isLiability ? deleteLiability : deleteAsset}
+                    onDeleteItem={deleteEntry}
                   />
                 </div>
               </div>

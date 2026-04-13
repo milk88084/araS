@@ -3,15 +3,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
-  Asset,
-  Liability,
+  Entry,
+  CreateEntry,
+  UpdateEntry,
   Transaction,
   PortfolioItem,
   ValueSnapshot,
-  CreateAsset,
-  UpdateAsset,
-  CreateLiability,
-  UpdateLiability,
   CreateTransaction,
   CreatePortfolioItem,
 } from "@repo/shared";
@@ -24,41 +21,47 @@ function now() {
   return new Date().toISOString();
 }
 
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message ?? "API error");
+  return json.data as T;
+}
+
+function makeSnapshot(entries: Entry[]): ValueSnapshot {
+  const totalAssets = entries
+    .filter((e) => e.topCategory !== "負債")
+    .reduce((s, e) => s + e.value, 0);
+  const totalLiabilities = entries
+    .filter((e) => e.topCategory === "負債")
+    .reduce((s, e) => s + e.value, 0);
+  return { id: uuid(), date: now(), totalAssets, totalLiabilities };
+}
+
 interface FinanceState {
-  assets: Asset[];
-  liabilities: Liability[];
+  entries: Entry[];
   transactions: Transaction[];
   portfolio: PortfolioItem[];
   valueSnapshots: ValueSnapshot[];
   loading: boolean;
   error: string | null;
   fetchAll: () => Promise<void>;
-  addAsset: (data: CreateAsset) => Promise<void>;
-  updateAsset: (id: string, data: UpdateAsset) => Promise<void>;
-  deleteAsset: (id: string) => Promise<void>;
-  addLiability: (data: CreateLiability) => Promise<void>;
-  updateLiability: (id: string, data: UpdateLiability) => Promise<void>;
-  deleteLiability: (id: string) => Promise<void>;
+  addEntry: (data: CreateEntry) => Promise<void>;
+  updateEntry: (id: string, data: UpdateEntry) => Promise<void>;
+  deleteEntry: (id: string) => Promise<void>;
   addTransaction: (data: CreateTransaction) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addPortfolioItem: (data: CreatePortfolioItem) => Promise<void>;
   deletePortfolioItem: (id: string) => Promise<void>;
 }
 
-function makeSnapshot(assets: Asset[], liabilities: Liability[]): ValueSnapshot {
-  return {
-    id: uuid(),
-    date: now(),
-    totalAssets: assets.reduce((s, a) => s + a.value, 0),
-    totalLiabilities: liabilities.reduce((s, l) => s + l.balance, 0),
-  };
-}
-
 export const useFinanceStore = create<FinanceState>()(
   persist(
     (set) => ({
-      assets: [],
-      liabilities: [],
+      entries: [],
       transactions: [],
       portfolio: [],
       valueSnapshots: [],
@@ -66,149 +69,93 @@ export const useFinanceStore = create<FinanceState>()(
       error: null,
 
       fetchAll: async () => {
-        // 本地模式：資料已在 localStorage，無需 fetch
-        // 若 valueSnapshots 尚無資料但已有資產/負債，補一筆初始快照
-        set((s) => {
-          if (s.valueSnapshots.length === 0 && (s.assets.length > 0 || s.liabilities.length > 0)) {
-            return { valueSnapshots: [makeSnapshot(s.assets, s.liabilities)] };
-          }
-          return {};
-        });
+        set({ loading: true, error: null });
+        try {
+          const [entries, transactions, portfolio] = await Promise.all([
+            apiFetch<Entry[]>("/api/entries"),
+            apiFetch<Transaction[]>("/api/transactions"),
+            apiFetch<PortfolioItem[]>("/api/portfolio"),
+          ]);
+          set((s) => {
+            const snapshots =
+              s.valueSnapshots.length === 0 && entries.length > 0
+                ? [makeSnapshot(entries)]
+                : s.valueSnapshots;
+            return { entries, transactions, portfolio, valueSnapshots: snapshots, loading: false };
+          });
+        } catch (e) {
+          set({ loading: false, error: e instanceof Error ? e.message : "Failed to fetch data" });
+        }
       },
 
-      addAsset: async (data) => {
-        const asset: Asset = {
-          id: uuid(),
-          name: data.name,
-          category: data.category,
-          value: data.value,
-          createdAt: now(),
-          updatedAt: now(),
-        };
+      addEntry: async (data) => {
+        const entry = await apiFetch<Entry>("/api/entries", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
         set((s) => {
-          const newAssets = [asset, ...s.assets];
+          const newEntries = [entry, ...s.entries];
           return {
-            assets: newAssets,
-            valueSnapshots: [...s.valueSnapshots, makeSnapshot(newAssets, s.liabilities)],
+            entries: newEntries,
+            valueSnapshots: [...s.valueSnapshots, makeSnapshot(newEntries)],
           };
         });
       },
 
-      updateAsset: async (id, data) => {
+      updateEntry: async (id, data) => {
+        const entry = await apiFetch<Entry>(`/api/entries/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(data),
+        });
         set((s) => {
-          const newAssets = s.assets.map((a) =>
-            a.id === id
-              ? {
-                  ...a,
-                  name: data.name ?? a.name,
-                  category: data.category ?? a.category,
-                  value: data.value ?? a.value,
-                  updatedAt: now(),
-                }
-              : a
-          );
+          const newEntries = s.entries.map((e) => (e.id === id ? entry : e));
           return {
-            assets: newAssets,
-            valueSnapshots: [...s.valueSnapshots, makeSnapshot(newAssets, s.liabilities)],
+            entries: newEntries,
+            valueSnapshots: [...s.valueSnapshots, makeSnapshot(newEntries)],
           };
         });
       },
 
-      deleteAsset: async (id) => {
+      deleteEntry: async (id) => {
+        await apiFetch(`/api/entries/${id}`, { method: "DELETE" });
         set((s) => {
-          const newAssets = s.assets.filter((a) => a.id !== id);
+          const newEntries = s.entries.filter((e) => e.id !== id);
           return {
-            assets: newAssets,
-            valueSnapshots: [...s.valueSnapshots, makeSnapshot(newAssets, s.liabilities)],
-          };
-        });
-      },
-
-      addLiability: async (data) => {
-        const liability: Liability = {
-          id: uuid(),
-          name: data.name,
-          category: data.category,
-          balance: data.balance,
-          createdAt: now(),
-          updatedAt: now(),
-        };
-        set((s) => {
-          const newLiabilities = [liability, ...s.liabilities];
-          return {
-            liabilities: newLiabilities,
-            valueSnapshots: [...s.valueSnapshots, makeSnapshot(s.assets, newLiabilities)],
-          };
-        });
-      },
-
-      updateLiability: async (id, data) => {
-        set((s) => {
-          const newLiabilities = s.liabilities.map((l) =>
-            l.id === id
-              ? {
-                  ...l,
-                  name: data.name ?? l.name,
-                  category: data.category ?? l.category,
-                  balance: data.balance ?? l.balance,
-                  updatedAt: now(),
-                }
-              : l
-          );
-          return {
-            liabilities: newLiabilities,
-            valueSnapshots: [...s.valueSnapshots, makeSnapshot(s.assets, newLiabilities)],
-          };
-        });
-      },
-
-      deleteLiability: async (id) => {
-        set((s) => {
-          const newLiabilities = s.liabilities.filter((l) => l.id !== id);
-          return {
-            liabilities: newLiabilities,
-            valueSnapshots: [...s.valueSnapshots, makeSnapshot(s.assets, newLiabilities)],
+            entries: newEntries,
+            valueSnapshots: [...s.valueSnapshots, makeSnapshot(newEntries)],
           };
         });
       },
 
       addTransaction: async (data) => {
-        const tx: Transaction = {
-          id: uuid(),
-          type: data.type,
-          amount: data.amount,
-          category: data.category,
-          source: data.source,
-          note: data.note ?? null,
-          date: data.date,
-          createdAt: now(),
-        };
+        const tx = await apiFetch<Transaction>("/api/transactions", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
         set((s) => ({ transactions: [tx, ...s.transactions] }));
       },
 
       deleteTransaction: async (id) => {
+        await apiFetch(`/api/transactions/${id}`, { method: "DELETE" });
         set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) }));
       },
 
       addPortfolioItem: async (data) => {
-        const item: PortfolioItem = {
-          id: uuid(),
-          symbol: data.symbol,
-          name: data.name,
-          avgCost: data.avgCost,
-          shares: data.shares,
-          createdAt: now(),
-          updatedAt: now(),
-        };
+        const item = await apiFetch<PortfolioItem>("/api/portfolio", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
         set((s) => ({ portfolio: [item, ...s.portfolio] }));
       },
 
       deletePortfolioItem: async (id) => {
+        await apiFetch(`/api/portfolio/${id}`, { method: "DELETE" });
         set((s) => ({ portfolio: s.portfolio.filter((p) => p.id !== id) }));
       },
     }),
     {
       name: "finance-store",
+      partialize: (s) => ({ valueSnapshots: s.valueSnapshots }),
     }
   )
 );

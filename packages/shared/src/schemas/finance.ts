@@ -1,46 +1,27 @@
 import { z } from "zod";
 
-// Asset
-export const AssetSchema = z.object({
+// Entry (unified asset + liability)
+export const EntrySchema = z.object({
   id: z.string(),
   name: z.string(),
-  category: z.string(),
+  topCategory: z.string(),
+  subCategory: z.string(),
   value: z.number(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
-export type Asset = z.infer<typeof AssetSchema>;
+export type Entry = z.infer<typeof EntrySchema>;
 
-export const CreateAssetSchema = z.object({
+export const CreateEntrySchema = z.object({
   name: z.string().min(1, "名稱為必填"),
-  category: z.string().min(1, "類別為必填"),
+  topCategory: z.string().min(1, "大類為必填"),
+  subCategory: z.string().min(1, "子類別為必填"),
   value: z.number().positive("金額必須大於 0"),
 });
-export type CreateAsset = z.infer<typeof CreateAssetSchema>;
+export type CreateEntry = z.infer<typeof CreateEntrySchema>;
 
-export const UpdateAssetSchema = CreateAssetSchema.partial();
-export type UpdateAsset = z.infer<typeof UpdateAssetSchema>;
-
-// Liability
-export const LiabilitySchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  category: z.string(),
-  balance: z.number(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-export type Liability = z.infer<typeof LiabilitySchema>;
-
-export const CreateLiabilitySchema = z.object({
-  name: z.string().min(1, "名稱為必填"),
-  category: z.string().min(1, "類別為必填"),
-  balance: z.number().positive("金額必須大於 0"),
-});
-export type CreateLiability = z.infer<typeof CreateLiabilitySchema>;
-
-export const UpdateLiabilitySchema = CreateLiabilitySchema.partial();
-export type UpdateLiability = z.infer<typeof UpdateLiabilitySchema>;
+export const UpdateEntrySchema = CreateEntrySchema.partial();
+export type UpdateEntry = z.infer<typeof UpdateEntrySchema>;
 
 // Transaction
 export const TransactionTypeSchema = z.enum(["income", "expense"]);

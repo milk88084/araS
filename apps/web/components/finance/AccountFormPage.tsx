@@ -18,7 +18,7 @@ interface Props {
   onClose: () => void; // back button — close form only
   onSaved: () => void; // after save — close form + menu
   topCategory: string;
-  isLiability: boolean;
+  isLiability?: boolean;
   categoryColor: string;
   subCategoryName: string;
   SubCategoryIcon: LucideIcon;
@@ -65,13 +65,12 @@ export function AccountFormPage({
   onClose,
   onSaved,
   topCategory,
-  isLiability,
   categoryColor,
   subCategoryName,
   SubCategoryIcon,
   editItem,
 }: Props) {
-  const { addAsset, updateAsset, addLiability, updateLiability } = useFinanceStore();
+  const { addEntry, updateEntry } = useFinanceStore();
   const isEdit = !!editItem;
   const isInvestment = topCategory === "投資" && INVESTMENT_CATEGORIES.includes(subCategoryName);
   const hasStockPicker = STOCK_PICKER_CATEGORIES.includes(subCategoryName);
@@ -182,21 +181,14 @@ export function AccountFormPage({
     const finalName = name.trim() || selectedStock?.name || subCategoryName;
 
     if (isEdit && editItem) {
-      if (isLiability) {
-        await updateLiability(editItem.id, {
-          name: finalName,
-          category: topCategory,
-          balance: value,
-        });
-      } else {
-        await updateAsset(editItem.id, { name: finalName, category: topCategory, value });
-      }
+      await updateEntry(editItem.id, {
+        name: finalName,
+        topCategory,
+        subCategory: subCategoryName,
+        value,
+      });
     } else {
-      if (isLiability) {
-        await addLiability({ name: finalName, category: topCategory, balance: value });
-      } else {
-        await addAsset({ name: finalName, category: topCategory, value });
-      }
+      await addEntry({ name: finalName, topCategory, subCategory: subCategoryName, value });
     }
     setSubmitting(false);
     onSaved();

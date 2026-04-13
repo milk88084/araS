@@ -9,15 +9,19 @@ import { RecentTransactionsList } from "../../../components/finance/RecentTransa
 import { TransactionBottomSheet } from "../../../components/finance/TransactionBottomSheet";
 
 export default function DashboardPage() {
-  const { fetchAll, assets, liabilities, transactions, loading } = useFinanceStore();
+  const { fetchAll, entries, transactions, loading } = useFinanceStore();
   const [showSheet, setShowSheet] = useState(false);
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
-  const totalAssets = assets.reduce((sum, a) => sum + a.value, 0);
-  const totalLiabilities = liabilities.reduce((sum, l) => sum + l.balance, 0);
+  const totalAssets = entries
+    .filter((e) => e.topCategory !== "負債")
+    .reduce((sum, e) => sum + e.value, 0);
+  const totalLiabilities = entries
+    .filter((e) => e.topCategory === "負債")
+    .reduce((sum, e) => sum + e.value, 0);
   const netWorth = totalAssets - totalLiabilities;
 
   const now = new Date();
