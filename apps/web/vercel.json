@@ -2,5 +2,10 @@
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=@repo/web --force",
   "installCommand": "cd ../.. && pnpm install",
   "outputDirectory": ".next",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "dev": false
+    }
+  }
 }
