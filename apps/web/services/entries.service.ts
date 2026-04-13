@@ -11,18 +11,51 @@ export class EntriesService {
   }
 
   async create(data: CreateEntry) {
-    return prisma.entry.create({ data });
+    const entry = await prisma.entry.create({ data });
+    await prisma.entryHistory.create({
+      data: { entryId: entry.id, delta: entry.value, balance: entry.value },
+    });
+    return entry;
   }
 
   async update(id: string, data: UpdateEntry) {
+    const existing = await prisma.entry.findUnique({ where: { id } });
     const cleaned = Object.fromEntries(
       Object.entries(data).filter(([, v]) => v !== undefined)
     ) as Parameters<typeof prisma.entry.update>[0]["data"];
-    return prisma.entry.update({ where: { id }, data: cleaned });
+    const entry = await prisma.entry.update({ where: { id }, data: cleaned });
+    if (data.value !== undefined && existing) {
+      const delta = entry.value - existing.value;
+      await prisma.entryHistory.create({
+        data: { entryId: id, delta, balance: entry.value },
+      });
+    }
+    return entry;
   }
 
   async delete(id: string) {
     return prisma.entry.delete({ where: { id } });
+  }
+
+  async listHistory(id: string) {
+    return prisma.entryHistory.findMany({
+      where: { entryId: id },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async createHistory(
+    entryId: string,
+    data: { delta: number; balance: number; note?: string; createdAt?: Date }
+  ) {
+    const payload: Parameters<typeof prisma.entryHistory.create>[0]["data"] = {
+      entryId,
+      delta: data.delta,
+      balance: data.balance,
+      note: data.note ?? null,
+    };
+    if (data.createdAt) payload.createdAt = data.createdAt;
+    return prisma.entryHistory.create({ data: payload });
   }
 }
 

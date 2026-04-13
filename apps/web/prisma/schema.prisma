@@ -9,15 +9,28 @@ datasource db {
 }
 
 model Entry {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   name        String
   topCategory String
   subCategory String
   value       Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  history     EntryHistory[]
 
   @@index([topCategory])
+}
+
+model EntryHistory {
+  id        String   @id @default(cuid())
+  entryId   String
+  entry     Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  delta     Float
+  balance   Float
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([entryId, createdAt])
 }
 
 model Transaction {

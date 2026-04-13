@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2, Wallet } from "lucide-react";
+import { Trash2, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formatCurrency } from "../../lib/format";
 
@@ -137,8 +137,11 @@ export function FinanceCategoryCard({
               const isDeleting = deletingId === item.id;
 
               return (
-                <div key={item.id} className="rounded-2xl bg-white px-4 py-3.5 shadow-sm">
-                  <div className="flex items-center gap-3">
+                <div key={item.id} className="overflow-hidden rounded-2xl bg-white shadow-sm">
+                  <button
+                    onClick={() => !isConfirming && onEditItem?.(item)}
+                    className="flex w-full items-center gap-3 px-4 py-3.5 active:bg-[#f2f2f7]"
+                  >
                     <div
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
                       style={{ backgroundColor: color + "25" }}
@@ -146,7 +149,7 @@ export function FinanceCategoryCard({
                       <Icon size={20} style={{ color }} />
                     </div>
 
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 text-left">
                       <p className="text-[15px] font-semibold" style={{ color }}>
                         {item.name}
                       </p>
@@ -159,14 +162,20 @@ export function FinanceCategoryCard({
                       {isConfirming ? (
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => handleDelete(item.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(item.id);
+                            }}
                             disabled={isDeleting}
                             className="rounded-lg bg-[#ff3b30] px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
                           >
                             {isDeleting ? "刪除中" : "確認"}
                           </button>
                           <button
-                            onClick={() => setConfirmDeleteId(null)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDeleteId(null);
+                            }}
                             className="rounded-lg bg-[#f2f2f7] px-2.5 py-1 text-[11px] font-semibold text-[#8e8e93]"
                           >
                             取消
@@ -182,17 +191,12 @@ export function FinanceCategoryCard({
                             {formatCurrency(item.value)}
                           </p>
                           <div className="mt-1 flex items-center justify-end gap-1">
-                            {onEditItem && (
-                              <button
-                                onClick={() => onEditItem(item)}
-                                className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#f2f2f7] active:bg-[#e5e5ea]"
-                              >
-                                <Pencil size={11} className="text-[#8e8e93]" />
-                              </button>
-                            )}
                             {onDeleteItem && (
                               <button
-                                onClick={() => setConfirmDeleteId(item.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmDeleteId(item.id);
+                                }}
                                 className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#f2f2f7] active:bg-[#e5e5ea]"
                               >
                                 <Trash2 size={11} className="text-[#ff3b30]" />
@@ -202,7 +206,7 @@ export function FinanceCategoryCard({
                         </>
                       )}
                     </div>
-                  </div>
+                  </button>
                 </div>
               );
             })}

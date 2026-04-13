@@ -65,7 +65,6 @@ export const CATEGORIES: TopCategory[] = [
         icon: BarChart2,
         children: [
           { name: "台股", icon: Flag },
-          { name: "台灣興櫃", icon: TrendingUp },
           { name: "美股", icon: Flag },
         ],
       },

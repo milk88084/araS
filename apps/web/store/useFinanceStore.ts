@@ -60,7 +60,7 @@ interface FinanceState {
 
 export const useFinanceStore = create<FinanceState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       entries: [],
       transactions: [],
       portfolio: [],
@@ -89,6 +89,29 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       addEntry: async (data) => {
+        // If an entry with the same name + topCategory + subCategory already exists, merge by summing values
+        const existing = get().entries.find(
+          (e) =>
+            e.name === data.name &&
+            e.topCategory === data.topCategory &&
+            e.subCategory === data.subCategory
+        );
+
+        if (existing) {
+          const merged = await apiFetch<Entry>(`/api/entries/${existing.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ value: existing.value + data.value }),
+          });
+          set((s) => {
+            const newEntries = s.entries.map((e) => (e.id === existing.id ? merged : e));
+            return {
+              entries: newEntries,
+              valueSnapshots: [...s.valueSnapshots, makeSnapshot(newEntries)],
+            };
+          });
+          return;
+        }
+
         const entry = await apiFetch<Entry>("/api/entries", {
           method: "POST",
           body: JSON.stringify(data),

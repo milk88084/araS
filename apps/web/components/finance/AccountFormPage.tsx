@@ -23,6 +23,7 @@ interface Props {
   subCategoryName: string;
   SubCategoryIcon: LucideIcon;
   editItem?: EditItem | null;
+  nameSuggestion?: string;
 }
 
 function getUnitsLabel(subCategoryName: string): string {
@@ -30,7 +31,6 @@ function getUnitsLabel(subCategoryName: string): string {
     case "投資基金":
       return "基金份額";
     case "台股":
-    case "台灣興櫃":
     case "美股":
       return "持有股數";
     case "加密貨幣":
@@ -42,16 +42,8 @@ function getUnitsLabel(subCategoryName: string): string {
   }
 }
 
-const INVESTMENT_CATEGORIES = [
-  "投資基金",
-  "台股",
-  "台灣興櫃",
-  "美股",
-  "加密貨幣",
-  "貴金屬",
-  "其他投資",
-];
-const STOCK_PICKER_CATEGORIES = ["台股", "台灣興櫃", "美股", "加密貨幣", "貴金屬"];
+const INVESTMENT_CATEGORIES = ["投資基金", "台股", "美股", "加密貨幣", "貴金屬", "其他投資"];
+const STOCK_PICKER_CATEGORIES = ["台股", "美股", "加密貨幣", "貴金屬"];
 
 const METAL_YF_SYMBOL: Record<string, string> = {
   xau: "GC=F", // Gold Futures
@@ -69,6 +61,7 @@ export function AccountFormPage({
   subCategoryName,
   SubCategoryIcon,
   editItem,
+  nameSuggestion,
 }: Props) {
   const { addEntry, updateEntry } = useFinanceStore();
   const isEdit = !!editItem;
@@ -83,7 +76,8 @@ export function AccountFormPage({
   const [originalPrice, setOriginalPrice] = useState(0);
   const [currency, setCurrency] = useState("TWD");
   const [exchangeRate, setExchangeRate] = useState(1);
-  const [showPriceDetail, setShowPriceDetail] = useState(false);
+  const [isPriceManual, setIsPriceManual] = useState(false);
+  const [manualPriceStr, setManualPriceStr] = useState("");
 
   // Stock picker state
   const [showStockPicker, setShowStockPicker] = useState(false);
@@ -98,46 +92,125 @@ export function AccountFormPage({
   const computedValue = useMemo(() => {
     const u = parseFloat(units) || 0;
     if (!hasStockPicker) return u;
-    const priceTWD = currency === "TWD" ? originalPrice : originalPrice * exchangeRate;
+    const price = isPriceManual ? parseFloat(manualPriceStr) || 0 : originalPrice;
+    const priceTWD = currency === "TWD" ? price : price * exchangeRate;
     return u * priceTWD;
-  }, [units, originalPrice, currency, exchangeRate, hasStockPicker]);
+  }, [units, originalPrice, isPriceManual, manualPriceStr, currency, exchangeRate, hasStockPicker]);
 
   useEffect(() => {
-    if (open) {
-      setName(editItem?.name ?? "");
-      setIncludeInChart(true);
-      setNote("");
-      setSelectedStock(null);
-      setOriginalPrice(0);
-      setCurrency("TWD");
-      setExchangeRate(1);
-      setShowPriceDetail(false);
-      if (isInvestment) {
-        setUnits(editItem ? String(editItem.value) : "");
-      } else {
-        setBalance(editItem ? String(editItem.value) : "");
-      }
+    if (!open) return;
+
+    setName(editItem?.name ?? nameSuggestion ?? "");
+    setIncludeInChart(true);
+    setNote("");
+    setSelectedStock(null);
+    setOriginalPrice(0);
+    setCurrency("TWD");
+    setExchangeRate(1);
+    setIsPriceManual(false);
+    setManualPriceStr("");
+    if (isInvestment) {
+      setUnits(editItem ? String(editItem.value) : "");
+    } else {
+      setBalance(editItem ? String(editItem.value) : "");
     }
-  }, [open, editItem, isInvestment]);
+
+    // Auto-select stock by name when opening "add" from a detail page
+    if (nameSuggestion && hasStockPicker && !editItem) {
+      let cancelled = false;
+      const run = async () => {
+        let stocks: StockItem[] = [];
+        try {
+          if (subCategoryName === "台股") {
+            const res = await fetch("/api/stocks/tw");
+            const data: Record<string, string>[] = await res.json();
+            stocks = data
+              .map((item) => ({
+                code: item["公司代號"] ?? "",
+                name: item["公司簡稱"] ?? item["公司名稱"] ?? "",
+              }))
+              .filter((s) => s.code && s.name);
+          } else if (subCategoryName === "美股") {
+            const res = await fetch("/api/stocks/us");
+            stocks = (await res.json()) as StockItem[];
+          } else if (subCategoryName === "加密貨幣") {
+            const res = await fetch("/api/stocks/crypto");
+            stocks = (await res.json()) as StockItem[];
+          } else if (subCategoryName === "貴金屬") {
+            stocks = PRECIOUS_METALS;
+          }
+        } catch {
+          return;
+        }
+        if (cancelled) return;
+
+        const match = stocks.find((s) => s.name === nameSuggestion);
+        if (!match) return;
+
+        setSelectedStock(match);
+
+        let yfSymbol = "";
+        if (subCategoryName === "貴金屬") {
+          yfSymbol = METAL_YF_SYMBOL[match.code.toLowerCase()] ?? "";
+        } else {
+          const suffix =
+            subCategoryName === "台股" ? ".TW" : subCategoryName === "加密貨幣" ? "-USD" : "";
+          yfSymbol = match.code + suffix;
+        }
+        if (!yfSymbol) return;
+
+        setPriceLoading(true);
+        try {
+          const r = await fetch(`/api/stocks/price?symbol=${encodeURIComponent(yfSymbol)}`);
+          const priceData = await r.json();
+          if (cancelled) return;
+          if (typeof priceData.price === "number") {
+            const fetchedPrice = priceData.price as number;
+            const fetchedCurrency = (priceData.currency as string) ?? "USD";
+            setOriginalPrice(fetchedPrice);
+            setCurrency(fetchedCurrency);
+            if (fetchedCurrency !== "TWD") {
+              try {
+                const fxRes = await fetch(
+                  `/api/stocks/price?symbol=${encodeURIComponent(fetchedCurrency + "TWD=X")}`
+                );
+                const fxData = await fxRes.json();
+                if (!cancelled && typeof fxData.price === "number")
+                  setExchangeRate(fxData.price as number);
+              } catch {
+                /* keep rate = 1 */
+              }
+            } else {
+              setExchangeRate(1);
+            }
+          }
+        } catch {
+          /* ignore */
+        } finally {
+          if (!cancelled) setPriceLoading(false);
+        }
+      };
+      run();
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [open, editItem, nameSuggestion, isInvestment, hasStockPicker, subCategoryName]);
 
   const handleSelectStock = (stock: StockItem) => {
     setSelectedStock(stock);
     if (!name) setName(stock.name);
+    setIsPriceManual(false);
+    setManualPriceStr("");
 
-    // Build Yahoo Finance symbol: 台股 → code.TW, 台灣興櫃 → code.TWO, 加密貨幣 → code-USD, 美股 → code as-is
+    // Build Yahoo Finance symbol: 台股 → code.TW, 加密貨幣 → code-USD, 美股 → code as-is
     // 貴金屬 → use predefined mapping (xau→XAU=X, etc.); unmapped metals skip price fetch
     let yfSymbol: string;
     if (subCategoryName === "貴金屬") {
       yfSymbol = METAL_YF_SYMBOL[stock.code.toLowerCase()] ?? "";
     } else {
       const suffix =
-        subCategoryName === "台股"
-          ? ".TW"
-          : subCategoryName === "台灣興櫃"
-            ? ".TWO"
-            : subCategoryName === "加密貨幣"
-              ? "-USD"
-              : "";
+        subCategoryName === "台股" ? ".TW" : subCategoryName === "加密貨幣" ? "-USD" : "";
       yfSymbol = stock.code + suffix;
     }
 
@@ -237,12 +310,13 @@ export function AccountFormPage({
           <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
             {isInvestment ? (
               <>
-                {/* Stock selector row — for 台股 / 台灣興櫃 */}
+                {/* Stock selector row */}
                 {hasStockPicker && (
                   <>
                     <button
-                      onClick={() => setShowStockPicker(true)}
-                      className="flex w-full items-center justify-between px-5 py-4 active:bg-[#f2f2f7]"
+                      onClick={() => !nameSuggestion && setShowStockPicker(true)}
+                      disabled={!!nameSuggestion}
+                      className="flex w-full items-center justify-between px-5 py-4 active:bg-[#f2f2f7] disabled:cursor-default disabled:opacity-60"
                     >
                       <p className="text-[16px] font-medium text-[#1c1c1e]">選擇股票</p>
                       <div className="flex items-center gap-2">
@@ -256,50 +330,108 @@ export function AccountFormPage({
                         ) : (
                           <p className="text-[15px] text-[#c7c7cc]">未選擇</p>
                         )}
-                        <ChevronRight size={16} className="text-[#c7c7cc]" />
+                        {!nameSuggestion && <ChevronRight size={16} className="text-[#c7c7cc]" />}
                       </div>
                     </button>
                     <div className="mx-5 h-px bg-[#f2f2f7]" />
                   </>
                 )}
 
-                {/* Units row */}
-                <div className="flex items-center justify-between px-5 py-4">
-                  <p className="text-[16px] font-medium text-[#1c1c1e]">
-                    {getUnitsLabel(subCategoryName)}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={units}
-                      onChange={(e) => setUnits(e.target.value)}
-                      placeholder="0"
-                      className="w-24 bg-transparent text-right text-[20px] font-semibold text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
-                    />
-                    <span className="rounded-full bg-[#1c1c1e] px-2.5 py-1 text-[11px] font-bold text-white">
-                      TWD
+                {/* Price + Units row (split) */}
+                {hasStockPicker ? (
+                  <div className="flex divide-x divide-[#f2f2f7]">
+                    {/* Left: stock price */}
+                    <div className="w-1/2 min-w-0 px-5 py-4">
+                      <p className="mb-1 text-[12px] text-[#8e8e93]">股價</p>
+                      {isPriceManual ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={manualPriceStr}
+                            onChange={(e) => setManualPriceStr(e.target.value)}
+                            placeholder="0.00"
+                            className="min-w-0 flex-1 bg-transparent text-[20px] font-semibold text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
+                          />
+                          <button
+                            onClick={() => setIsPriceManual(false)}
+                            className="shrink-0 text-[12px] text-[#007aff]"
+                          >
+                            自動
+                          </button>
+                        </div>
+                      ) : priceLoading ? (
+                        <p className="text-[14px] text-[#8e8e93]">查詢中…</p>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setIsPriceManual(true);
+                            setManualPriceStr(originalPrice > 0 ? String(originalPrice) : "");
+                          }}
+                          className="w-full text-left"
+                        >
+                          <p className="text-[20px] font-semibold text-[#1c1c1e]">
+                            {originalPrice > 0
+                              ? originalPrice.toLocaleString(undefined, {
+                                  maximumFractionDigits: 6,
+                                })
+                              : "--"}
+                          </p>
+                          {currency !== "TWD" && originalPrice > 0 && (
+                            <p className="mt-0.5 text-[11px] text-[#8e8e93]">
+                              {currency} × {exchangeRate.toFixed(2)}
+                            </p>
+                          )}
+                          <p className="mt-0.5 text-[11px] text-[#007aff]">手動輸入</p>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Right: units */}
+                    <div className="w-1/2 min-w-0 px-5 py-4">
+                      <p className="mb-1 text-[12px] text-[#8e8e93]">
+                        {getUnitsLabel(subCategoryName)}
+                      </p>
+                      <input
+                        type="number"
+                        value={units}
+                        onChange={(e) => setUnits(e.target.value)}
+                        placeholder="0"
+                        className="w-full bg-transparent text-[20px] font-semibold text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* Non-stock-picker investment (fund, other): just enter total value */
+                  <div className="flex items-center justify-between px-5 py-4">
+                    <p className="text-[16px] font-medium text-[#1c1c1e]">
+                      {getUnitsLabel(subCategoryName)}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={units}
+                        onChange={(e) => setUnits(e.target.value)}
+                        placeholder="0"
+                        className="w-24 bg-transparent text-right text-[20px] font-semibold text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
+                      />
+                      <span className="rounded-full bg-[#1c1c1e] px-2.5 py-1 text-[11px] font-bold text-white">
+                        TWD
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Computed total */}
+                <div className="flex w-full items-center px-5 pb-4">
+                  <div className="rounded-lg bg-[#f2f2f7] px-3 py-1.5">
+                    <span className="text-[13px] text-[#8e8e93]">
+                      =&nbsp;TWD&nbsp;
+                      <span className="font-semibold text-[#1c1c1e]">
+                        {computedValue.toLocaleString()}
+                      </span>
                     </span>
                   </div>
                 </div>
-
-                {/* Computed total — display only, tap to expand detail */}
-                <button
-                  onClick={() => hasStockPicker && setShowPriceDetail((v) => !v)}
-                  className="flex w-full items-center px-5 pb-4"
-                >
-                  <div className="rounded-lg bg-[#f2f2f7] px-3 py-1.5">
-                    {priceLoading ? (
-                      <span className="text-[13px] text-[#8e8e93]">查詢中...</span>
-                    ) : (
-                      <span className="text-[13px] text-[#8e8e93]">
-                        =&nbsp;TWD&nbsp;
-                        <span className="font-semibold text-[#1c1c1e]">
-                          {computedValue.toLocaleString()}
-                        </span>
-                      </span>
-                    )}
-                  </div>
-                </button>
               </>
             ) : (
               /* Standard balance */
@@ -370,27 +502,6 @@ export function AccountFormPage({
               />
             </div>
           </div>
-
-          {/* Price detail panel — shown when user taps the computed total */}
-          {showPriceDetail && !priceLoading && originalPrice > 0 && (
-            <div className="mt-3 space-y-2">
-              <div className="rounded-2xl bg-white px-5 py-4 shadow-sm">
-                <p className="text-[13px] text-[#8e8e93]">Price ({currency})</p>
-                <p className="mt-1 text-[22px] font-bold text-[#1c1c1e]">
-                  {originalPrice.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 8,
-                  })}
-                </p>
-              </div>
-              {currency !== "TWD" && (
-                <div className="rounded-2xl bg-white px-5 py-4 shadow-sm">
-                  <p className="text-[13px] text-[#8e8e93]">Rate ({currency} → TWD)</p>
-                  <p className="mt-1 text-[22px] font-bold text-[#1c1c1e]">{exchangeRate}</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Recurrences section */}
           <div className="mt-6 flex items-center justify-between">

@@ -13,6 +13,7 @@ import {
 } from "../../../components/finance/FinanceCategoryCard";
 import { AddAccountPage } from "../../../components/finance/AddAccountPage";
 import { AccountFormPage } from "../../../components/finance/AccountFormPage";
+import { EntryDetailPage } from "../../../components/finance/EntryDetailPage";
 import {
   CATEGORIES,
   getNodeIcon,
@@ -40,6 +41,8 @@ export default function AssetsPage() {
   const liabilities = entries.filter((e) => e.topCategory === "負債");
 
   const [showMenu, setShowMenu] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const [detailEntry, setDetailEntry] = useState<Entry | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
   const [editItem, setEditItem] = useState<EditItem | null>(null);
@@ -76,22 +79,34 @@ export default function AssetsPage() {
     setShowForm(true);
   };
 
-  const openFormForEdit = (item: CategoryItem, isLiability: boolean) => {
+  const openDetail = (item: CategoryItem) => {
     const entry = entries.find((e) => e.id === item.id);
-    const topCategory = entry?.topCategory ?? "";
-    const subCategory = entry?.subCategory ?? "";
-    const topCat = getTopCategory(topCategory);
-    const color = topCat?.color ?? "#007aff";
-    const icon = getNodeIcon(topCategory, subCategory);
+    if (!entry) return;
+    setDetailEntry(entry);
+    setShowDetail(true);
+  };
 
+  const openFormFromDetail = (entry: Entry, mode: "add" | "adjust") => {
+    const topCat = getTopCategory(entry.topCategory);
+    const color = topCat?.color ?? "#007aff";
+    const icon = getNodeIcon(entry.topCategory, entry.subCategory);
     setFormConfig({
-      topCategory,
-      isLiability,
+      topCategory: entry.topCategory,
+      isLiability: entry.topCategory === "負債",
       color,
-      subCategoryName: subCategory,
+      subCategoryName: entry.subCategory,
       SubCategoryIcon: icon,
     });
-    setEditItem({ id: item.id, name: item.name, value: item.value, category: topCategory });
+    if (mode === "adjust") {
+      setEditItem({
+        id: entry.id,
+        name: entry.name,
+        value: entry.value,
+        category: entry.topCategory,
+      });
+    } else {
+      setEditItem(null);
+    }
     setShowForm(true);
   };
 
@@ -103,9 +118,11 @@ export default function AssetsPage() {
 
   const closeAll = () => {
     setShowForm(false);
+    setShowDetail(false);
     setShowMenu(false);
     setFormConfig(null);
     setEditItem(null);
+    setDetailEntry(null);
   };
 
   if (loading) {
@@ -172,7 +189,7 @@ export default function AssetsPage() {
                       const entry = cat.catEntries.find((e) => e.name === itemName);
                       return getNodeIcon(cat.name, entry?.subCategory ?? itemName);
                     }}
-                    onEditItem={(item) => openFormForEdit(item, isLiability)}
+                    onEditItem={(item) => openDetail(item)}
                     onDeleteItem={deleteEntry}
                   />
                 </div>
@@ -198,6 +215,21 @@ export default function AssetsPage() {
         onSelectCategory={openFormForNew}
       />
 
+      <EntryDetailPage
+        open={showDetail}
+        entry={detailEntry}
+        onClose={() => {
+          setShowDetail(false);
+          setDetailEntry(null);
+        }}
+        onAddEntry={() => {
+          if (detailEntry) openFormFromDetail(detailEntry, "add");
+        }}
+        onAdjust={() => {
+          if (detailEntry) openFormFromDetail(detailEntry, "adjust");
+        }}
+      />
+
       <AccountFormPage
         open={showForm}
         onClose={closeForm}
@@ -208,6 +240,7 @@ export default function AssetsPage() {
         subCategoryName={formConfig?.subCategoryName ?? ""}
         SubCategoryIcon={formConfig?.SubCategoryIcon ?? Wallet}
         editItem={editItem}
+        nameSuggestion={!editItem ? detailEntry?.name : undefined}
       />
     </div>
   );

@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+// EntryHistory
+export const EntryHistorySchema = z.object({
+  id: z.string(),
+  entryId: z.string(),
+  delta: z.number(),
+  balance: z.number(),
+  note: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type EntryHistory = z.infer<typeof EntryHistorySchema>;
+
 // Entry (unified asset + liability)
 export const EntrySchema = z.object({
   id: z.string(),
