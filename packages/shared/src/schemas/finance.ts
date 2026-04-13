@@ -6,6 +6,7 @@ export const EntryHistorySchema = z.object({
   entryId: z.string(),
   delta: z.number(),
   balance: z.number(),
+  units: z.number().nullable().optional(),
   note: z.string().nullable(),
   createdAt: z.string(),
 });
@@ -17,6 +18,7 @@ export const EntrySchema = z.object({
   name: z.string(),
   topCategory: z.string(),
   subCategory: z.string(),
+  stockCode: z.string().nullable().optional(),
   value: z.number(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -27,6 +29,8 @@ export const CreateEntrySchema = z.object({
   name: z.string().min(1, "名稱為必填"),
   topCategory: z.string().min(1, "大類為必填"),
   subCategory: z.string().min(1, "子類別為必填"),
+  stockCode: z.string().optional(),
+  units: z.number().optional(),
   value: z.number().positive("金額必須大於 0"),
 });
 export type CreateEntry = z.infer<typeof CreateEntrySchema>;

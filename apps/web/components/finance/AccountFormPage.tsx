@@ -252,6 +252,7 @@ export function AccountFormPage({
     setSubmitting(true);
     const value = isInvestment ? computedValue : parseFloat(balance) || 0;
     const finalName = name.trim() || selectedStock?.name || subCategoryName;
+    const unitsParsed = hasStockPicker ? parseFloat(units) || undefined : undefined;
 
     if (isEdit && editItem) {
       await updateEntry(editItem.id, {
@@ -259,9 +260,18 @@ export function AccountFormPage({
         topCategory,
         subCategory: subCategoryName,
         value,
+        ...(selectedStock ? { stockCode: selectedStock.code } : {}),
+        ...(unitsParsed != null ? { units: unitsParsed } : {}),
       });
     } else {
-      await addEntry({ name: finalName, topCategory, subCategory: subCategoryName, value });
+      await addEntry({
+        name: finalName,
+        topCategory,
+        subCategory: subCategoryName,
+        value,
+        ...(selectedStock ? { stockCode: selectedStock.code } : {}),
+        ...(unitsParsed != null ? { units: unitsParsed } : {}),
+      });
     }
     setSubmitting(false);
     onSaved();

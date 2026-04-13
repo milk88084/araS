@@ -14,6 +14,14 @@ interface Props {
   onAdjust: () => void;
 }
 
+const STOCK_PICKER_CATEGORIES = ["台股", "美股", "加密貨幣", "貴金屬"];
+const METAL_YF_SYMBOL: Record<string, string> = {
+  xau: "GC=F",
+  xag: "SI=F",
+  xap: "PL=F",
+  xpd: "PA=F",
+};
+
 function getCategoryColor(topCategory: string): string {
   return CATEGORIES.find((c) => c.name === topCategory)?.color ?? "#007aff";
 }
@@ -28,12 +36,28 @@ function formatDate(iso: string): string {
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+function buildYfSymbol(subCategory: string, stockCode: string): string {
+  if (subCategory === "貴金屬") return METAL_YF_SYMBOL[stockCode.toLowerCase()] ?? "";
+  const suffix = subCategory === "台股" ? ".TW" : subCategory === "加密貨幣" ? "-USD" : "";
+  return stockCode + suffix;
+}
+
 export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: Props) {
   const [history, setHistory] = useState<EntryHistory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [priceLoading, setPriceLoading] = useState(false);
+
+  const isStockEntry =
+    !!entry && STOCK_PICKER_CATEGORIES.includes(entry.subCategory) && !!entry.stockCode;
 
   useEffect(() => {
     if (!open || !entry) return;
+
+    setHistory([]);
+    setCurrentPrice(null);
+
+    // Fetch history
     setLoading(true);
     fetch(`/api/entries/${entry.id}/history`)
       .then((r) => r.json())
@@ -42,12 +66,34 @@ export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: 
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [open, entry]);
+
+    // Fetch current price if this is a stock entry
+    if (isStockEntry && entry.stockCode) {
+      const yfSymbol = buildYfSymbol(entry.subCategory, entry.stockCode);
+      if (!yfSymbol) return;
+      setPriceLoading(true);
+      fetch(`/api/stocks/price?symbol=${encodeURIComponent(yfSymbol)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (typeof data.price === "number") setCurrentPrice(data.price as number);
+        })
+        .catch(() => {})
+        .finally(() => setPriceLoading(false));
+    }
+  }, [open, entry, isStockEntry]);
 
   if (!entry) return null;
 
   const color = getCategoryColor(entry.topCategory);
   const isLiability = entry.topCategory === "負債";
+
+  // P&L calculations (only for history records that have units)
+  const investmentRecords = history.filter((h) => h.units != null && h.units > 0);
+  const totalUnits = investmentRecords.reduce((s, h) => s + (h.units ?? 0), 0);
+  const totalCost = investmentRecords.reduce((s, h) => s + h.delta, 0);
+  const currentMarketValue = currentPrice != null ? totalUnits * currentPrice : null;
+  const totalPnL = currentMarketValue != null ? currentMarketValue - totalCost : null;
+  const totalPnLPct = totalCost > 0 && totalPnL != null ? (totalPnL / totalCost) * 100 : null;
 
   return (
     <div
@@ -91,17 +137,50 @@ export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: 
             </div>
             <div>
               <p className="text-[17px] font-semibold text-[#1c1c1e]">{entry.name}</p>
-              <p className="text-[13px] text-[#8e8e93]">{entry.subCategory}</p>
+              <p className="text-[13px] text-[#8e8e93]">
+                {entry.stockCode ? `${entry.stockCode} · ${entry.subCategory}` : entry.subCategory}
+              </p>
             </div>
           </div>
 
           {/* Value */}
-          <p className="mb-6 text-[38px] font-bold tracking-tight text-[#1c1c1e]">
+          <p className="text-[38px] font-bold tracking-tight text-[#1c1c1e]">
             {formatCurrency(entry.value)}
           </p>
 
+          {/* P&L summary (stocks only) */}
+          {isStockEntry && (
+            <div className="mt-2 mb-4 flex items-center gap-4">
+              {priceLoading ? (
+                <p className="text-[13px] text-[#8e8e93]">查詢股價中…</p>
+              ) : currentPrice != null ? (
+                <>
+                  <p className="text-[13px] text-[#8e8e93]">
+                    當日股價 {currentPrice.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                  </p>
+                  {totalPnL != null && (
+                    <p
+                      className="text-[14px] font-semibold"
+                      style={{ color: totalPnL >= 0 ? "#34c759" : "#ff3b30" }}
+                    >
+                      {formatDelta(totalPnL)}
+                      {totalPnLPct != null && (
+                        <span className="ml-1 text-[12px] font-medium">
+                          ({totalPnL >= 0 ? "+" : ""}
+                          {totalPnLPct.toFixed(2)}%)
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-[13px] text-[#8e8e93]">無法取得股價</p>
+              )}
+            </div>
+          )}
+
           {/* Action buttons */}
-          <div className="flex gap-3">
+          <div className={`flex gap-3 ${isStockEntry ? "" : "mt-6"}`}>
             <button
               onClick={onAddEntry}
               className="flex-1 rounded-full border border-[#e5e5ea] bg-white py-3 text-[15px] font-semibold text-[#1c1c1e] shadow-sm active:bg-[#f2f2f7]"
@@ -119,7 +198,6 @@ export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: 
 
         {/* History list */}
         <div className="flex-1 overflow-y-auto px-5">
-          {/* List header */}
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[13px] font-semibold text-[#1c1c1e]">交易記錄</p>
             <p className="text-[13px] text-[#8e8e93]">變動</p>
@@ -131,32 +209,53 @@ export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: 
             <p className="py-8 text-center text-sm text-[#c7c7cc]">尚無記錄</p>
           ) : (
             <div className="space-y-0 overflow-hidden rounded-2xl bg-white shadow-sm">
-              {history.map((h, i) => (
-                <div key={h.id}>
-                  {i > 0 && <div className="mx-4 h-px bg-[#f2f2f7]" />}
-                  <div className="flex items-start justify-between px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-medium text-[#1c1c1e]">
-                        {h.note ?? (h.delta >= 0 ? "新增" : "調整")}
-                      </p>
-                      <p className="mt-0.5 text-[12px] text-[#8e8e93]">{formatDate(h.createdAt)}</p>
-                    </div>
-                    <div className="ml-4 shrink-0 text-right">
-                      <p
-                        className="text-[14px] font-semibold"
-                        style={{
-                          color: h.delta >= 0 ? (isLiability ? "#ff3b30" : "#34c759") : "#ff3b30",
-                        }}
-                      >
-                        {formatDelta(h.delta)}
-                      </p>
-                      <p className="mt-0.5 text-[12px] text-[#8e8e93]">
-                        餘額 {formatCurrency(h.balance)}
-                      </p>
+              {history.map((h, i) => {
+                const hasUnits = h.units != null && h.units > 0;
+                const recordPnL =
+                  hasUnits && currentPrice != null ? h.units! * currentPrice - h.delta : null;
+
+                return (
+                  <div key={h.id}>
+                    {i > 0 && <div className="mx-4 h-px bg-[#f2f2f7]" />}
+                    <div className="flex items-start justify-between px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] font-medium text-[#1c1c1e]">
+                          {h.note ?? (h.delta >= 0 ? "新增" : "調整")}
+                        </p>
+                        <p className="mt-0.5 text-[12px] text-[#8e8e93]">
+                          {formatDate(h.createdAt)}
+                        </p>
+                        {hasUnits && (
+                          <p className="mt-0.5 text-[12px] text-[#8e8e93]">
+                            {h.units!.toLocaleString()} 股
+                          </p>
+                        )}
+                      </div>
+                      <div className="ml-4 shrink-0 text-right">
+                        <p
+                          className="text-[14px] font-semibold"
+                          style={{
+                            color: h.delta >= 0 ? (isLiability ? "#ff3b30" : "#34c759") : "#ff3b30",
+                          }}
+                        >
+                          {formatDelta(h.delta)}
+                        </p>
+                        <p className="mt-0.5 text-[12px] text-[#8e8e93]">
+                          餘額 {formatCurrency(h.balance)}
+                        </p>
+                        {recordPnL != null && (
+                          <p
+                            className="mt-0.5 text-[12px] font-medium"
+                            style={{ color: recordPnL >= 0 ? "#34c759" : "#ff3b30" }}
+                          >
+                            盈虧 {formatDelta(recordPnL)}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

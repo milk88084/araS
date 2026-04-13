@@ -13,6 +13,7 @@ model Entry {
   name        String
   topCategory String
   subCategory String
+  stockCode   String?
   value       Float
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -27,6 +28,7 @@ model EntryHistory {
   entry     Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
   delta     Float
   balance   Float
+  units     Float?
   note      String?
   createdAt DateTime @default(now())
 

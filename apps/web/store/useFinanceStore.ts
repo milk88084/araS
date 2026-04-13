@@ -100,7 +100,11 @@ export const useFinanceStore = create<FinanceState>()(
         if (existing) {
           const merged = await apiFetch<Entry>(`/api/entries/${existing.id}`, {
             method: "PUT",
-            body: JSON.stringify({ value: existing.value + data.value }),
+            body: JSON.stringify({
+              value: existing.value + data.value,
+              ...(data.stockCode ? { stockCode: data.stockCode } : {}),
+              ...(data.units != null ? { units: data.units } : {}),
+            }),
           });
           set((s) => {
             const newEntries = s.entries.map((e) => (e.id === existing.id ? merged : e));
