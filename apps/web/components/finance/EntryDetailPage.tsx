@@ -16,6 +16,7 @@ interface Props {
 }
 
 const STOCK_PICKER_CATEGORIES = ["台股", "美股", "加密貨幣", "貴金屬"];
+const DIVIDEND_CATEGORIES = ["台股", "美股"];
 const METAL_YF_SYMBOL: Record<string, string> = {
   xau: "GC=F",
   xag: "SI=F",
@@ -56,6 +57,12 @@ export function EntryDetailPage({
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
 
+  // Dividend state
+  const [dividendRate, setDividendRate] = useState<number | null>(null);
+  const [dividendYield, setDividendYield] = useState<number | null>(null);
+  const [dividendExRate, setDividendExRate] = useState(1);
+  const [dividendLoading, setDividendLoading] = useState(false);
+
   // Edit sheet state
   const [editingHistory, setEditingHistory] = useState<EntryHistory | null>(null);
   const [editNote, setEditNote] = useState("");
@@ -73,6 +80,9 @@ export function EntryDetailPage({
 
     setHistory([]);
     setCurrentPrice(null);
+    setDividendRate(null);
+    setDividendYield(null);
+    setDividendExRate(1);
 
     // Fetch history
     setLoading(true);
@@ -96,6 +106,37 @@ export function EntryDetailPage({
         })
         .catch(() => {})
         .finally(() => setPriceLoading(false));
+    }
+
+    // Fetch dividend data for 台股 / 美股 only
+    if (entry.stockCode && DIVIDEND_CATEGORIES.includes(entry.subCategory)) {
+      const yfSymbol = buildYfSymbol(entry.subCategory, entry.stockCode);
+      if (!yfSymbol) return;
+      setDividendLoading(true);
+      fetch(`/api/stocks/dividend?symbol=${encodeURIComponent(yfSymbol)}`)
+        .then((r) => r.json())
+        .then(async (data) => {
+          setDividendRate(
+            typeof data.dividendRate === "number" ? (data.dividendRate as number) : null
+          );
+          setDividendYield(
+            typeof data.dividendYield === "number" ? (data.dividendYield as number) : null
+          );
+          // For US stocks, fetch USD→TWD exchange rate
+          if (entry.subCategory === "美股" && typeof data.dividendRate === "number") {
+            try {
+              const fxRes = await fetch(
+                `/api/stocks/price?symbol=${encodeURIComponent("USDTWD=X")}`
+              );
+              const fxData = await fxRes.json();
+              if (typeof fxData.price === "number") setDividendExRate(fxData.price as number);
+            } catch {
+              /* keep rate = 1 */
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => setDividendLoading(false));
     }
   }, [open, entry, isStockEntry]);
 
@@ -274,6 +315,35 @@ export function EntryDetailPage({
             </button>
           </div>
         </div>
+
+        {/* Dividend estimate card — 台股 / 美股 only */}
+        {entry.stockCode && DIVIDEND_CATEGORIES.includes(entry.subCategory) && (
+          <div className="px-5 pb-4">
+            <div className="overflow-hidden rounded-2xl bg-white px-4 py-3 shadow-sm">
+              {dividendLoading ? (
+                <p className="text-[13px] text-[#8e8e93]">🪙 查詢配息資料中…</p>
+              ) : dividendRate !== null && dividendRate > 0 ? (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[13px] font-semibold text-[#1c1c1e]">🪙 預估年配息</p>
+                    <p className="mt-0.5 text-[11px] text-[#8e8e93]">
+                      {dividendYield !== null && `殖利率 ${(dividendYield * 100).toFixed(2)}%  ·  `}
+                      每股 {formatCurrency(dividendRate * dividendExRate)}
+                    </p>
+                  </div>
+                  <p className="text-[18px] font-bold" style={{ color: "#f0a500" }}>
+                    {formatCurrency(dividendRate * dividendExRate * totalUnits)}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <p className="text-[13px] font-semibold text-[#1c1c1e]">🪙 預估年配息</p>
+                  <p className="text-[13px] text-[#8e8e93]">無配息資料</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* History list */}
         <div className="flex-1 overflow-y-auto px-5">
