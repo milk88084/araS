@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Pencil, MoreHorizontal } from "lucide-react";
+import { X, Pencil, MoreHorizontal, Trash2 } from "lucide-react";
 import type { Entry, EntryHistory } from "@repo/shared";
 import { formatCurrency } from "../../lib/format";
 import { CATEGORIES } from "./categoryConfig";
@@ -12,9 +12,11 @@ interface Props {
   onClose: () => void;
   onAddEntry: () => void;
   onAdjust: () => void;
+  onEntryUpdated?: () => void;
 }
 
 const STOCK_PICKER_CATEGORIES = ["台股", "美股", "加密貨幣", "貴金屬"];
+const DIVIDEND_CATEGORIES = ["台股", "美股"];
 const METAL_YF_SYMBOL: Record<string, string> = {
   xau: "GC=F",
   xag: "SI=F",
@@ -42,11 +44,33 @@ function buildYfSymbol(subCategory: string, stockCode: string): string {
   return stockCode + suffix;
 }
 
-export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: Props) {
+export function EntryDetailPage({
+  open,
+  entry,
+  onClose,
+  onAddEntry,
+  onAdjust,
+  onEntryUpdated,
+}: Props) {
   const [history, setHistory] = useState<EntryHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
+
+  // Dividend state
+  const [dividendRate, setDividendRate] = useState<number | null>(null);
+  const [dividendYield, setDividendYield] = useState<number | null>(null);
+  const [dividendExRate, setDividendExRate] = useState(1);
+  const [dividendLoading, setDividendLoading] = useState(false);
+
+  // Edit sheet state
+  const [editingHistory, setEditingHistory] = useState<EntryHistory | null>(null);
+  const [editNote, setEditNote] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editDelta, setEditDelta] = useState("");
+  const [editUnits, setEditUnits] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isStockEntry =
     !!entry && STOCK_PICKER_CATEGORIES.includes(entry.subCategory) && !!entry.stockCode;
@@ -56,6 +80,9 @@ export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: 
 
     setHistory([]);
     setCurrentPrice(null);
+    setDividendRate(null);
+    setDividendYield(null);
+    setDividendExRate(1);
 
     // Fetch history
     setLoading(true);
@@ -80,7 +107,100 @@ export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: 
         .catch(() => {})
         .finally(() => setPriceLoading(false));
     }
+
+    // Fetch dividend data for 台股 / 美股 only
+    if (entry.stockCode && DIVIDEND_CATEGORIES.includes(entry.subCategory)) {
+      const yfSymbol = buildYfSymbol(entry.subCategory, entry.stockCode);
+      if (!yfSymbol) return;
+      setDividendLoading(true);
+      fetch(`/api/stocks/dividend?symbol=${encodeURIComponent(yfSymbol)}`)
+        .then((r) => r.json())
+        .then(async (data) => {
+          setDividendRate(
+            typeof data.dividendRate === "number" ? (data.dividendRate as number) : null
+          );
+          setDividendYield(
+            typeof data.dividendYield === "number" ? (data.dividendYield as number) : null
+          );
+          // For US stocks, fetch USD→TWD exchange rate
+          if (entry.subCategory === "美股" && typeof data.dividendRate === "number") {
+            try {
+              const fxRes = await fetch(
+                `/api/stocks/price?symbol=${encodeURIComponent("USDTWD=X")}`
+              );
+              const fxData = await fxRes.json();
+              if (typeof fxData.price === "number") setDividendExRate(fxData.price as number);
+            } catch {
+              /* keep rate = 1 */
+            }
+          }
+        })
+        .catch(() => {})
+        .finally(() => setDividendLoading(false));
+    }
   }, [open, entry, isStockEntry]);
+
+  function refetchHistory() {
+    if (!entry) return;
+    fetch(`/api/entries/${entry.id}/history`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) setHistory(json.data);
+      })
+      .catch(() => {});
+  }
+
+  function openEditSheet(h: EntryHistory) {
+    setEditingHistory(h);
+    setEditNote(h.note ?? "");
+    setEditDate(h.createdAt.split("T")[0] ?? "");
+    setEditDelta(String(h.delta));
+    setEditUnits(h.units != null ? String(h.units) : "");
+    setConfirmDelete(false);
+  }
+
+  async function handleSaveHistory() {
+    if (!editingHistory || !entry) return;
+    setEditSaving(true);
+    try {
+      const body: Record<string, unknown> = {
+        note: editNote.trim() || null,
+        createdAt: editDate,
+        delta: parseFloat(editDelta) || editingHistory.delta,
+        units: editUnits !== "" ? parseFloat(editUnits) : null,
+      };
+      const res = await fetch(`/api/entries/${entry.id}/history/${editingHistory.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setEditingHistory(null);
+        refetchHistory();
+        onEntryUpdated?.();
+      }
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function handleDeleteHistory() {
+    if (!editingHistory || !entry) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/entries/${entry.id}/history/${editingHistory.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setEditingHistory(null);
+        setConfirmDelete(false);
+        refetchHistory();
+        onEntryUpdated?.();
+      }
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   if (!entry) return null;
 
@@ -196,6 +316,35 @@ export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: 
           </div>
         </div>
 
+        {/* Dividend estimate card — 台股 / 美股 only */}
+        {entry.stockCode && DIVIDEND_CATEGORIES.includes(entry.subCategory) && (
+          <div className="px-5 pb-4">
+            <div className="overflow-hidden rounded-2xl bg-white px-4 py-3 shadow-sm">
+              {dividendLoading ? (
+                <p className="text-[13px] text-[#8e8e93]">🪙 查詢配息資料中…</p>
+              ) : dividendRate !== null && dividendRate > 0 ? (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[13px] font-semibold text-[#1c1c1e]">🪙 預估年配息</p>
+                    <p className="mt-0.5 text-[11px] text-[#8e8e93]">
+                      {dividendYield !== null && `殖利率 ${(dividendYield * 100).toFixed(2)}%  ·  `}
+                      每股 {formatCurrency(dividendRate * dividendExRate)}
+                    </p>
+                  </div>
+                  <p className="text-[18px] font-bold" style={{ color: "#f0a500" }}>
+                    {formatCurrency(dividendRate * dividendExRate * totalUnits)}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <p className="text-[13px] font-semibold text-[#1c1c1e]">🪙 預估年配息</p>
+                  <p className="text-[13px] text-[#8e8e93]">無配息資料</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* History list */}
         <div className="flex-1 overflow-y-auto px-5">
           <div className="mb-2 flex items-center justify-between">
@@ -217,7 +366,10 @@ export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: 
                 return (
                   <div key={h.id}>
                     {i > 0 && <div className="mx-4 h-px bg-[#f2f2f7]" />}
-                    <div className="flex items-start justify-between px-4 py-3">
+                    <div
+                      className="flex cursor-pointer items-start justify-between px-4 py-3 active:bg-[#f2f2f7]"
+                      onClick={() => openEditSheet(h)}
+                    >
                       <div className="min-w-0 flex-1">
                         <p className="text-[14px] font-medium text-[#1c1c1e]">
                           {h.note ?? (h.delta >= 0 ? "新增" : "調整")}
@@ -260,6 +412,116 @@ export function EntryDetailPage({ open, entry, onClose, onAddEntry, onAdjust }: 
           )}
         </div>
       </div>
+
+      {/* Edit history bottom sheet */}
+      {editingHistory && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[80] bg-black/40"
+            onClick={() => setEditingHistory(null)}
+          />
+
+          {/* Sheet */}
+          <div className="fixed inset-x-0 bottom-0 z-[81] mx-auto max-w-md rounded-t-2xl bg-white px-5 pt-4 pb-10">
+            {/* Handle */}
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#e5e5ea]" />
+
+            <p className="mb-5 text-center text-[16px] font-semibold text-[#1c1c1e]">編輯記錄</p>
+
+            <div className="overflow-hidden rounded-2xl bg-[#f2f2f7]">
+              {/* Note */}
+              <div className="flex items-center justify-between px-4 py-3">
+                <p className="text-[15px] text-[#1c1c1e]">備註</p>
+                <input
+                  type="text"
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  placeholder="選填"
+                  className="ml-4 min-w-0 flex-1 bg-transparent text-right text-[15px] text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
+                />
+              </div>
+              <div className="mx-4 h-px bg-white/60" />
+
+              {/* Date */}
+              <div className="flex items-center justify-between px-4 py-3">
+                <p className="text-[15px] text-[#1c1c1e]">日期</p>
+                <input
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="bg-transparent text-right text-[15px] text-[#1c1c1e] outline-none"
+                />
+              </div>
+              <div className="mx-4 h-px bg-white/60" />
+
+              {/* Delta */}
+              <div className="flex items-center justify-between px-4 py-3">
+                <p className="text-[15px] text-[#1c1c1e]">變動金額</p>
+                <input
+                  type="number"
+                  value={editDelta}
+                  onChange={(e) => setEditDelta(e.target.value)}
+                  className="ml-4 min-w-0 flex-1 bg-transparent text-right text-[15px] font-semibold text-[#1c1c1e] outline-none"
+                />
+              </div>
+
+              {/* Units (stock entries only) */}
+              {isStockEntry && (
+                <>
+                  <div className="mx-4 h-px bg-white/60" />
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <p className="text-[15px] text-[#1c1c1e]">持有股數</p>
+                    <input
+                      type="number"
+                      value={editUnits}
+                      onChange={(e) => setEditUnits(e.target.value)}
+                      placeholder="0"
+                      className="ml-4 min-w-0 flex-1 bg-transparent text-right text-[15px] text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Save / Cancel */}
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => setEditingHistory(null)}
+                className="flex-1 rounded-full border border-[#e5e5ea] py-3 text-[15px] font-semibold text-[#1c1c1e] active:bg-[#f2f2f7]"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveHistory}
+                disabled={editSaving}
+                className="flex-1 rounded-full bg-[#1c1c1e] py-3 text-[15px] font-semibold text-white active:opacity-80 disabled:opacity-40"
+              >
+                儲存
+              </button>
+            </div>
+
+            {/* Delete */}
+            {!confirmDelete ? (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-[#ff3b30] py-3 text-[15px] font-semibold text-[#ff3b30] active:bg-[#fff2f1]"
+              >
+                <Trash2 size={16} />
+                刪除此記錄
+              </button>
+            ) : (
+              <button
+                onClick={handleDeleteHistory}
+                disabled={editSaving}
+                className="mt-3 w-full rounded-full bg-[#ff3b30] py-3 text-[15px] font-semibold text-white active:opacity-80 disabled:opacity-40"
+              >
+                確認刪除
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

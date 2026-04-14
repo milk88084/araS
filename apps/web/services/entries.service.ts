@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { CreateEntry, UpdateEntry } from "@repo/shared";
+import type { CreateEntry, UpdateEntry, UpdateEntryHistory } from "@repo/shared";
 
 export class EntriesService {
   async list() {
@@ -11,11 +11,27 @@ export class EntriesService {
   }
 
   async create(data: CreateEntry) {
-    const { units, stockCode, ...rest } = data;
-    const entry = await prisma.entry.create({ data: { ...rest, stockCode: stockCode ?? null } });
-    await prisma.entryHistory.create({
-      data: { entryId: entry.id, delta: entry.value, balance: entry.value, units: units ?? null },
+    const { units, stockCode, createdAt, ...rest } = data;
+    const timestamp = createdAt ? new Date(createdAt) : undefined;
+
+    const entry = await prisma.entry.create({
+      data: {
+        ...rest,
+        stockCode: stockCode ?? null,
+        ...(timestamp !== undefined ? { createdAt: timestamp } : {}),
+      },
     });
+
+    await prisma.entryHistory.create({
+      data: {
+        entryId: entry.id,
+        delta: entry.value,
+        balance: entry.value,
+        units: units ?? null,
+        ...(timestamp !== undefined ? { createdAt: timestamp } : {}),
+      },
+    });
+
     return entry;
   }
 
@@ -43,6 +59,65 @@ export class EntriesService {
     return prisma.entryHistory.findMany({
       where: { entryId: id },
       orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async updateHistory(historyId: string, data: UpdateEntryHistory) {
+    const existing = await prisma.entryHistory.findUniqueOrThrow({ where: { id: historyId } });
+
+    const newDelta = data.delta ?? existing.delta;
+    const deltaDiff = newDelta - existing.delta;
+
+    await prisma.entryHistory.update({
+      where: { id: historyId },
+      data: {
+        note: data.note !== undefined ? data.note : existing.note,
+        createdAt: data.createdAt !== undefined ? new Date(data.createdAt) : existing.createdAt,
+        units: data.units !== undefined ? data.units : existing.units,
+        delta: newDelta,
+        balance: existing.balance + deltaDiff,
+      },
+    });
+
+    if (deltaDiff !== 0) {
+      await prisma.entryHistory.updateMany({
+        where: { entryId: existing.entryId, createdAt: { gt: existing.createdAt } },
+        data: { balance: { increment: deltaDiff } },
+      });
+
+      const last = await prisma.entryHistory.findFirst({
+        where: { entryId: existing.entryId },
+        orderBy: { createdAt: "desc" },
+      });
+      if (last) {
+        await prisma.entry.update({
+          where: { id: existing.entryId },
+          data: { value: last.balance },
+        });
+      }
+    }
+
+    return prisma.entryHistory.findUniqueOrThrow({ where: { id: historyId } });
+  }
+
+  async deleteHistory(historyId: string) {
+    const existing = await prisma.entryHistory.findUniqueOrThrow({ where: { id: historyId } });
+
+    await prisma.entryHistory.delete({ where: { id: historyId } });
+
+    // Shift subsequent records' balance down by the deleted delta
+    await prisma.entryHistory.updateMany({
+      where: { entryId: existing.entryId, createdAt: { gt: existing.createdAt } },
+      data: { balance: { increment: -existing.delta } },
+    });
+
+    const last = await prisma.entryHistory.findFirst({
+      where: { entryId: existing.entryId },
+      orderBy: { createdAt: "desc" },
+    });
+    await prisma.entry.update({
+      where: { id: existing.entryId },
+      data: { value: last?.balance ?? 0 },
     });
   }
 
