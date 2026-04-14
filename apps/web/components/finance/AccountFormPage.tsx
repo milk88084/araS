@@ -97,6 +97,7 @@ export function AccountFormPage({
   const [name, setName] = useState("");
   const [includeInChart, setIncludeInChart] = useState(true);
   const [note, setNote] = useState("");
+  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0] ?? "");
   const [submitting, setSubmitting] = useState(false);
 
   const computedValue = useMemo(() => {
@@ -113,6 +114,7 @@ export function AccountFormPage({
     setName(editItem?.name ?? nameSuggestion ?? "");
     setIncludeInChart(true);
     setNote("");
+    setDate(new Date().toISOString().split("T")[0] ?? "");
     setSelectedStock(null);
     setOriginalPrice(0);
     setCurrency("TWD");
@@ -281,6 +283,7 @@ export function AccountFormPage({
         value,
         ...(selectedStock ? { stockCode: selectedStock.code } : {}),
         ...(unitsParsed != null ? { units: unitsParsed } : {}),
+        createdAt: date,
       });
     }
     setSubmitting(false);
@@ -490,6 +493,22 @@ export function AccountFormPage({
             </div>
 
             <div className="mx-5 h-px bg-[#f2f2f7]" />
+
+            {/* Date — only shown when adding a new entry */}
+            {!isEdit && (
+              <>
+                <div className="flex items-center justify-between px-5 py-4">
+                  <p className="shrink-0 text-[16px] font-medium text-[#1c1c1e]">日期</p>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="bg-transparent text-right text-[14px] text-[#8e8e93] outline-none"
+                  />
+                </div>
+                <div className="mx-5 h-px bg-[#f2f2f7]" />
+              </>
+            )}
 
             {/* Include in Chart */}
             <div className="flex items-center justify-between px-5 py-4">

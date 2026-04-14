@@ -32,11 +32,20 @@ export const CreateEntrySchema = z.object({
   stockCode: z.string().optional(),
   units: z.number().optional(),
   value: z.number().positive("金額必須大於 0"),
+  createdAt: z.string().optional(),
 });
 export type CreateEntry = z.infer<typeof CreateEntrySchema>;
 
 export const UpdateEntrySchema = CreateEntrySchema.partial();
 export type UpdateEntry = z.infer<typeof UpdateEntrySchema>;
+
+export const UpdateEntryHistorySchema = z.object({
+  note: z.string().nullable().optional(),
+  createdAt: z.string().optional(),
+  delta: z.number().optional(),
+  units: z.number().nullable().optional(),
+});
+export type UpdateEntryHistory = z.infer<typeof UpdateEntryHistorySchema>;
 
 // Transaction
 export const TransactionTypeSchema = z.enum(["income", "expense"]);
