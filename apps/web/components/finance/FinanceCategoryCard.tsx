@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Trash2, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formatCurrency } from "../../lib/format";
+import { Spinner } from "../ui/Spinner";
 
 export interface CategoryItem {
   id: string;
@@ -69,7 +70,7 @@ export function FinanceCategoryCard({
   };
 
   return (
-    <div>
+    <div className="w-full">
       {/* Header — transitions between white card and colored header */}
       <button
         onClick={() => setExpanded((v) => !v)}
@@ -138,9 +139,9 @@ export function FinanceCategoryCard({
 
               return (
                 <div key={item.id} className="overflow-hidden rounded-2xl bg-white shadow-sm">
-                  <button
+                  <div
                     onClick={() => !isConfirming && onEditItem?.(item)}
-                    className="flex w-full items-center gap-3 px-4 py-3.5 active:bg-[#f2f2f7]"
+                    className="flex w-full cursor-pointer items-center gap-3 px-4 py-3.5 active:bg-[#f2f2f7]"
                   >
                     <div
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
@@ -167,8 +168,9 @@ export function FinanceCategoryCard({
                               handleDelete(item.id);
                             }}
                             disabled={isDeleting}
-                            className="rounded-lg bg-[#ff3b30] px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
+                            className="flex items-center gap-1 rounded-lg bg-[#ff3b30] px-2.5 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
                           >
+                            {isDeleting && <Spinner size={10} />}
                             {isDeleting ? "刪除中" : "確認"}
                           </button>
                           <button
@@ -206,7 +208,7 @@ export function FinanceCategoryCard({
                         </>
                       )}
                     </div>
-                  </button>
+                  </div>
                 </div>
               );
             })}

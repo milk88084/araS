@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X, Pencil, MoreHorizontal, Trash2 } from "lucide-react";
+import { Spinner } from "../ui/Spinner";
 import type { Entry, EntryHistory } from "@repo/shared";
 import { formatCurrency } from "../../lib/format";
 import { CATEGORIES } from "./categoryConfig";
@@ -495,9 +496,10 @@ export function EntryDetailPage({
               <button
                 onClick={handleSaveHistory}
                 disabled={editSaving}
-                className="flex-1 rounded-full bg-[#1c1c1e] py-3 text-[15px] font-semibold text-white active:opacity-80 disabled:opacity-40"
+                className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#1c1c1e] py-3 text-[15px] font-semibold text-white active:opacity-80 disabled:opacity-40"
               >
-                儲存
+                {editSaving && <Spinner size={14} />}
+                {editSaving ? "儲存中..." : "儲存"}
               </button>
             </div>
 
@@ -514,9 +516,10 @@ export function EntryDetailPage({
               <button
                 onClick={handleDeleteHistory}
                 disabled={editSaving}
-                className="mt-3 w-full rounded-full bg-[#ff3b30] py-3 text-[15px] font-semibold text-white active:opacity-80 disabled:opacity-40"
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-[#ff3b30] py-3 text-[15px] font-semibold text-white active:opacity-80 disabled:opacity-40"
               >
-                確認刪除
+                {editSaving && <Spinner size={14} />}
+                {editSaving ? "刪除中..." : "確認刪除"}
               </button>
             )}
           </div>

@@ -179,7 +179,7 @@ export default function AssetsPage() {
                   className="w-12 shrink-0 rounded-r-2xl"
                   style={{ backgroundColor: cat.color }}
                 />
-                <div className="flex-1">
+                <div className="min-w-0 flex-1 overflow-hidden">
                   <FinanceCategoryCard
                     name={cat.name}
                     color={cat.color}
