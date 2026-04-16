@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Check, Info, RefreshCw } from "lucide-react";
+import { Spinner } from "../ui/Spinner";
 import type { LucideIcon } from "lucide-react";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { StockPickerPage, type StockItem } from "./StockPickerPage";
@@ -311,7 +312,13 @@ export function AccountFormPage({
               disabled={submitting}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm disabled:opacity-40"
             >
-              <Check size={20} style={{ color: categoryColor }} strokeWidth={2.5} />
+              {submitting ? (
+                <span style={{ color: categoryColor }}>
+                  <Spinner size={20} />
+                </span>
+              ) : (
+                <Check size={20} style={{ color: categoryColor }} strokeWidth={2.5} />
+              )}
             </button>
           </div>
 

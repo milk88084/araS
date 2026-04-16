@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { Spinner } from "../ui/Spinner";
 import { useFinanceStore } from "../../store/useFinanceStore";
 
 interface Props {
@@ -103,8 +104,9 @@ export function AddPortfolioItemModal({ open, onClose }: Props) {
           <button
             onClick={handleSubmit}
             disabled={!symbol || !name || !avgCost || !shares || submitting}
-            className="mt-2 w-full rounded-xl bg-[#007aff] py-3.5 text-sm font-semibold text-white disabled:opacity-40"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#007aff] py-3.5 text-sm font-semibold text-white disabled:opacity-40"
           >
+            {submitting && <Spinner size={14} />}
             {submitting ? "新增中..." : "新增"}
           </button>
         </div>
