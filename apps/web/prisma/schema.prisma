@@ -18,8 +18,29 @@ model Entry {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   history     EntryHistory[]
+  loan        Loan?
 
   @@index([topCategory])
+}
+
+model Loan {
+  id                 String        @id @default(cuid())
+  entryId            String        @unique
+  entry              Entry         @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  loanName           String
+  totalAmount        Float
+  annualInterestRate Float
+  termMonths         Int
+  startDate          DateTime
+  gracePeriodMonths  Int           @default(0)
+  repaymentType      RepaymentType
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+
+enum RepaymentType {
+  principal_interest
+  principal_equal
 }
 
 model EntryHistory {
