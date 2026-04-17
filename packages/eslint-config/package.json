@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.3",
-    "@next/eslint-plugin-next": "^15.0.0",
+    "@next/eslint-plugin-next": "^16.2.3",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.37.0",
