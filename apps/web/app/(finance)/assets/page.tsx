@@ -19,6 +19,10 @@ import {
   getNodeIcon,
   getTopCategory,
 } from "../../../components/finance/categoryConfig";
+import { LoanDetailSheet } from "../../../components/finance/LoanDetailSheet";
+import { LoanSummaryCard } from "../../../components/finance/LoanSummaryCard";
+import { calculateLoanStatus } from "@repo/shared";
+import type { Loan } from "@repo/shared";
 
 interface FormConfig {
   topCategory: string;
@@ -47,6 +51,8 @@ export default function AssetsPage() {
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
   const [editItem, setEditItem] = useState<EditItem | null>(null);
   const [hideBalance, setHideBalance] = useState(false);
+  const [showLoanDetail, setShowLoanDetail] = useState(false);
+  const [loanDetailData, setLoanDetailData] = useState<{ loan: Loan; color: string } | null>(null);
 
   useEffect(() => {
     fetchAll();
@@ -82,6 +88,14 @@ export default function AssetsPage() {
   const openDetail = (item: CategoryItem) => {
     const entry = entries.find((e) => e.id === item.id);
     if (!entry) return;
+
+    if (entry.loan) {
+      const topCat = getTopCategory(entry.topCategory);
+      setLoanDetailData({ loan: entry.loan, color: topCat?.color ?? "#C7C7D4" });
+      setShowLoanDetail(true);
+      return;
+    }
+
     setDetailEntry(entry);
     setShowDetail(true);
   };
@@ -166,12 +180,30 @@ export default function AssetsPage() {
         <div className="flex flex-col gap-3 pr-4 pb-8">
           {categoriesWithData.map((cat) => {
             const isLiability = cat.isLiability;
-            const items: CategoryItem[] = cat.catEntries.map((e) => ({
-              id: e.id,
-              name: e.name,
-              value: e.value,
-              updatedAt: e.updatedAt,
-            }));
+            const items: CategoryItem[] = cat.catEntries.map((e) => {
+              let loanPill: CategoryItem["loan"] = null;
+              if (e.loan) {
+                const status = calculateLoanStatus(
+                  {
+                    totalAmount: e.loan.totalAmount,
+                    annualInterestRate: e.loan.annualInterestRate,
+                    termMonths: e.loan.termMonths,
+                    startDate: e.loan.startDate,
+                    gracePeriodMonths: e.loan.gracePeriodMonths,
+                    repaymentType: e.loan.repaymentType,
+                  },
+                  new Date()
+                );
+                loanPill = { paidMonths: status.paidMonths, termMonths: e.loan.termMonths };
+              }
+              return {
+                id: e.id,
+                name: e.name,
+                value: e.value,
+                updatedAt: e.updatedAt,
+                loan: loanPill,
+              };
+            });
 
             return (
               <div key={cat.name} className="flex items-stretch gap-1.5">
@@ -180,6 +212,7 @@ export default function AssetsPage() {
                   style={{ backgroundColor: cat.color }}
                 />
                 <div className="min-w-0 flex-1 overflow-hidden">
+                  {cat.isLiability && <LoanSummaryCard loanEntries={cat.catEntries} />}
                   <FinanceCategoryCard
                     name={cat.name}
                     color={cat.color}
@@ -242,6 +275,19 @@ export default function AssetsPage() {
         editItem={editItem}
         {...(!editItem && detailEntry?.name ? { nameSuggestion: detailEntry.name } : {})}
       />
+
+      {loanDetailData && (
+        <LoanDetailSheet
+          open={showLoanDetail}
+          loan={loanDetailData.loan}
+          color={loanDetailData.color}
+          onClose={() => {
+            setShowLoanDetail(false);
+            setLoanDetailData(null);
+          }}
+          onRateUpdated={fetchAll}
+        />
+      )}
     </div>
   );
 }
