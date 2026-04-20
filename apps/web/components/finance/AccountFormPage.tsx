@@ -6,6 +6,7 @@ import { Spinner } from "../ui/Spinner";
 import type { LucideIcon } from "lucide-react";
 import { useFinanceStore } from "../../store/useFinanceStore";
 import { StockPickerPage, type StockItem } from "./StockPickerPage";
+import { LoanFormFields, type LoanFormValues } from "./LoanFormFields";
 
 interface EditItem {
   id: string;
@@ -45,6 +46,7 @@ function getUnitsLabel(subCategoryName: string): string {
 
 const INVESTMENT_CATEGORIES = ["投資基金", "台股", "美股", "加密貨幣", "貴金屬", "其他投資"];
 const STOCK_PICKER_CATEGORIES = ["台股", "美股", "加密貨幣", "貴金屬"];
+const LOAN_SUBCATEGORIES = ["房屋貸款", "汽車貸款", "消費貸款", "學生貸款", "其他貸款"];
 
 const METAL_YF_SYMBOL: Record<string, string> = {
   xau: "GC=F", // Gold Futures
@@ -74,9 +76,10 @@ export function AccountFormPage({
   editItem,
   nameSuggestion,
 }: Props) {
-  const { addEntry, updateEntry } = useFinanceStore();
+  const { addEntry, updateEntry, fetchAll } = useFinanceStore();
   const isEdit = !!editItem;
   const isInvestment = topCategory === "投資" && INVESTMENT_CATEGORIES.includes(subCategoryName);
+  const isLoan = LOAN_SUBCATEGORIES.includes(subCategoryName);
   const hasStockPicker = STOCK_PICKER_CATEGORIES.includes(subCategoryName);
 
   // Standard form state
@@ -100,6 +103,15 @@ export function AccountFormPage({
   const [note, setNote] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0] ?? "");
   const [submitting, setSubmitting] = useState(false);
+  const [loanValues, setLoanValues] = useState<LoanFormValues>({
+    loanName: "",
+    totalAmount: "",
+    annualInterestRate: "",
+    termMonths: "",
+    startDate: new Date().toISOString().split("T")[0] ?? "",
+    gracePeriodMonths: "0",
+    repaymentType: "principal_interest",
+  });
 
   const computedValue = useMemo(() => {
     const u = parseFloat(units) || 0;
@@ -126,6 +138,18 @@ export function AccountFormPage({
       setUnits(editItem ? String(editItem.value) : "");
     } else {
       setBalance(editItem ? String(editItem.value) : "");
+    }
+
+    if (isLoan) {
+      setLoanValues({
+        loanName: nameSuggestion ?? "",
+        totalAmount: "",
+        annualInterestRate: "",
+        termMonths: "",
+        startDate: new Date().toISOString().split("T")[0] ?? "",
+        gracePeriodMonths: "0",
+        repaymentType: "principal_interest",
+      });
     }
 
     // Auto-select stock by name when opening "add" from a detail page
@@ -263,32 +287,54 @@ export function AccountFormPage({
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    const value = isInvestment ? computedValue : parseFloat(balance) || 0;
-    const finalName = name.trim() || selectedStock?.name || subCategoryName;
-    const unitsParsed = hasStockPicker ? parseFloat(units) || undefined : undefined;
+    try {
+      if (isLoan) {
+        const res = await fetch("/api/loans", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            loanName: loanValues.loanName.trim() || subCategoryName,
+            category: subCategoryName,
+            totalAmount: parseFloat(loanValues.totalAmount) || 0,
+            annualInterestRate: parseFloat(loanValues.annualInterestRate) || 0,
+            termMonths: parseInt(loanValues.termMonths) || 0,
+            startDate: new Date(loanValues.startDate).toISOString(),
+            gracePeriodMonths: parseInt(loanValues.gracePeriodMonths) || 0,
+            repaymentType: loanValues.repaymentType,
+          }),
+        });
+        if (!res.ok) throw new Error("貸款建立失敗");
+        await fetchAll();
+      } else {
+        const value = isInvestment ? computedValue : parseFloat(balance) || 0;
+        const finalName = name.trim() || selectedStock?.name || subCategoryName;
+        const unitsParsed = hasStockPicker ? parseFloat(units) || undefined : undefined;
 
-    if (isEdit && editItem) {
-      await updateEntry(editItem.id, {
-        name: finalName,
-        topCategory,
-        subCategory: subCategoryName,
-        value,
-        ...(selectedStock ? { stockCode: selectedStock.code } : {}),
-        ...(unitsParsed != null ? { units: unitsParsed } : {}),
-      });
-    } else {
-      await addEntry({
-        name: finalName,
-        topCategory,
-        subCategory: subCategoryName,
-        value,
-        ...(selectedStock ? { stockCode: selectedStock.code } : {}),
-        ...(unitsParsed != null ? { units: unitsParsed } : {}),
-        createdAt: date,
-      });
+        if (isEdit && editItem) {
+          await updateEntry(editItem.id, {
+            name: finalName,
+            topCategory,
+            subCategory: subCategoryName,
+            value,
+            ...(selectedStock ? { stockCode: selectedStock.code } : {}),
+            ...(unitsParsed != null ? { units: unitsParsed } : {}),
+          });
+        } else {
+          await addEntry({
+            name: finalName,
+            topCategory,
+            subCategory: subCategoryName,
+            value,
+            ...(selectedStock ? { stockCode: selectedStock.code } : {}),
+            ...(unitsParsed != null ? { units: unitsParsed } : {}),
+            createdAt: date,
+          });
+        }
+      }
+      onSaved();
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
-    onSaved();
   };
 
   return (
@@ -338,7 +384,9 @@ export function AccountFormPage({
 
           {/* Main form card */}
           <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-            {isInvestment ? (
+            {isLoan ? (
+              <LoanFormFields values={loanValues} color={categoryColor} onChange={setLoanValues} />
+            ) : isInvestment ? (
               <>
                 {/* Stock selector row */}
                 {hasStockPicker && (
