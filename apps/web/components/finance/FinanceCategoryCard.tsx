@@ -11,6 +11,10 @@ export interface CategoryItem {
   name: string;
   value: number;
   updatedAt: string;
+  loan?: {
+    paidMonths: number;
+    termMonths: number;
+  } | null;
 }
 
 interface Props {
@@ -154,9 +158,15 @@ export function FinanceCategoryCard({
                       <p className="text-[15px] font-semibold" style={{ color }}>
                         {item.name}
                       </p>
-                      <p className="text-[12px] text-[#8e8e93]">
-                        Updated on {formatDate(item.updatedAt)}
-                      </p>
+                      {item.loan ? (
+                        <p className="text-[12px] text-[#8e8e93]">
+                          {item.loan.paidMonths} / {item.loan.termMonths} 期
+                        </p>
+                      ) : (
+                        <p className="text-[12px] text-[#8e8e93]">
+                          Updated on {formatDate(item.updatedAt)}
+                        </p>
+                      )}
                     </div>
 
                     <div className="shrink-0 text-right">

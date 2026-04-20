@@ -12,6 +12,42 @@ export const EntryHistorySchema = z.object({
 });
 export type EntryHistory = z.infer<typeof EntryHistorySchema>;
 
+// Loan
+export const RepaymentTypeSchema = z.enum(["principal_interest", "principal_equal"]);
+export type RepaymentType = z.infer<typeof RepaymentTypeSchema>;
+
+export const LoanSchema = z.object({
+  id: z.string(),
+  entryId: z.string(),
+  loanName: z.string(),
+  totalAmount: z.number(),
+  annualInterestRate: z.number(),
+  termMonths: z.number(),
+  startDate: z.string(),
+  gracePeriodMonths: z.number(),
+  repaymentType: RepaymentTypeSchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Loan = z.infer<typeof LoanSchema>;
+
+export const CreateLoanSchema = z.object({
+  loanName: z.string().min(1, "貸款名稱為必填"),
+  category: z.string().min(1, "類別為必填"),
+  totalAmount: z.number().positive("金額必須大於 0"),
+  annualInterestRate: z.number().min(0).max(100),
+  termMonths: z.number().int().positive("期數必須大於 0"),
+  startDate: z.string(),
+  gracePeriodMonths: z.number().int().min(0).default(0),
+  repaymentType: RepaymentTypeSchema,
+});
+export type CreateLoan = z.infer<typeof CreateLoanSchema>;
+
+export const UpdateLoanRateSchema = z.object({
+  annualInterestRate: z.number().min(0).max(100),
+});
+export type UpdateLoanRate = z.infer<typeof UpdateLoanRateSchema>;
+
 // Entry (unified asset + liability)
 export const EntrySchema = z.object({
   id: z.string(),
@@ -22,6 +58,7 @@ export const EntrySchema = z.object({
   value: z.number(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  loan: LoanSchema.nullable().optional(),
 });
 export type Entry = z.infer<typeof EntrySchema>;
 
