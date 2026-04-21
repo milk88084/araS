@@ -16,7 +16,7 @@ The Taiwan stock picker currently fetches the full TWSE list on every open, even
 1. Default view shows only the user's existing TW holdings — no API call on open.
 2. API is only called when the user types a search query (debounced 300 ms).
 3. Clearing the search returns to the holdings view.
-4. `00933B` (and any other known API gaps) are covered by a local fallback list.
+4. Bond ETFs such as `00933B` are covered by adding the TPEx (OTC/上櫃) exchange endpoint and merging it with the existing TWSE data.
 5. Re-opening the picker after a selection always returns to the holdings view (query cleared).
 
 ---
@@ -62,15 +62,27 @@ query !== "" (台股 only)
 
 Non-台股 markets: behaviour unchanged (fetch all on open, filter client-side).
 
-### Local fallback constant
+### TPEx endpoint merge (replaces static fallback)
 
-```ts
-const TW_FALLBACK_STOCKS: StockItem[] = [
-  { code: "00933B", name: "國泰10年以上投資級金融債券ETF基金" },
-];
+**Investigation findings:**
+
+- `00933B` (國泰10Y+金融債) is listed on **TPEx (OTC/上櫃)**, not TWSE.
+- TWSE `STOCK_DAY_ALL` returns only securities traded on the current day (~1,351 records). It covers TWSE-listed securities only.
+- TPEx has its own daily quotes API (`tpex_mainboard_daily_close_quotes`) with ~10,629 records including **95 bond ETFs** (all `*B`-suffix codes) absent from TWSE.
+- The two markets do not overlap (e.g. TSMC `2330` is TWSE-only; `00933B` is TPEx-only).
+- A static fallback for a single ticker was the wrong fix — the gap is structural (entire exchange missing).
+
+**Fix:** Update `/api/stocks/tw` to fetch both TWSE and TPEx, then merge:
+
+```
+TWSE: https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL
+      field mapping: Code → 公司代號, Name → 公司簡稱 (overridden by t187ap03_L when available)
+
+TPEx: https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes
+      field mapping: SecuritiesCompanyCode → 公司代號, CompanyName → 公司簡稱
 ```
 
-Fallback entries are spliced into search results **only** when the API returns zero matches for the exact uppercased query string as a code. They are never shown in the default holdings view (unless the user already holds them, in which case they appear via the `holdings` prop).
+Both results are merged into a single sorted array, deduplicated by code. The existing 1-hour in-memory cache applies to the merged result. The `t187ap03_L` name-override map applies to TWSE entries only (TPEx has its own names).
 
 ### Reset on close
 
