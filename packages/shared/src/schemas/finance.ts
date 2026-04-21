@@ -48,6 +48,45 @@ export const UpdateLoanRateSchema = z.object({
 });
 export type UpdateLoanRate = z.infer<typeof UpdateLoanRateSchema>;
 
+// CashValueRow
+export const CashValueRowSchema = z.object({
+  policyYear: z.number().int().positive(),
+  cashValue: z.number().nonnegative(),
+});
+export type CashValueRow = z.infer<typeof CashValueRowSchema>;
+
+// Insurance
+export const InsuranceSchema = z.object({
+  id: z.string(),
+  entryId: z.string(),
+  currency: z.string(),
+  declaredRate: z.number(),
+  premiumTotal: z.number(),
+  currentAge: z.number().int(),
+  startDate: z.string(),
+  cashValueData: z.array(CashValueRowSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Insurance = z.infer<typeof InsuranceSchema>;
+
+export const CreateInsuranceSchema = z.object({
+  name: z.string().min(1, "名稱為必填"),
+  currency: z.string().default("USD"),
+  declaredRate: z.number().min(0).max(20),
+  premiumTotal: z.number().positive("保費必須大於 0"),
+  currentAge: z.number().int().min(0).max(120),
+  startDate: z.string(),
+  cashValueData: z.array(CashValueRowSchema).min(1, "請至少輸入一年的現金價值"),
+});
+export type CreateInsurance = z.infer<typeof CreateInsuranceSchema>;
+
+export const UpdateInsuranceRateSchema = z.object({
+  declaredRate: z.number().min(0).max(20),
+  cashValueData: z.array(CashValueRowSchema).optional(),
+});
+export type UpdateInsuranceRate = z.infer<typeof UpdateInsuranceRateSchema>;
+
 // Entry (unified asset + liability)
 export const EntrySchema = z.object({
   id: z.string(),
@@ -59,6 +98,7 @@ export const EntrySchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   loan: LoanSchema.nullable().optional(),
+  insurance: InsuranceSchema.nullable().optional(),
 });
 export type Entry = z.infer<typeof EntrySchema>;
 

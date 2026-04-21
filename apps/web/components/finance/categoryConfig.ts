@@ -19,6 +19,7 @@ import {
   ShoppingCart,
   Flag,
   Minus,
+  Shield,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -81,6 +82,7 @@ export const CATEGORIES: TopCategory[] = [
       { name: "房屋", icon: Home },
       { name: "車輛", icon: Car },
       { name: "其他資產", icon: Building2 },
+      { name: "保險", icon: Shield },
     ],
   },
   {

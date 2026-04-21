@@ -2,7 +2,7 @@
   "name": "財務管家",
   "short_name": "財務管家",
   "description": "個人財務管理工具",
-  "start_url": "/dashboard",
+  "start_url": "/assets",
   "display": "standalone",
   "background_color": "#FAFAFA",
   "theme_color": "#111827",

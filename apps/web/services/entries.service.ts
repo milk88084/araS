@@ -5,14 +5,14 @@ export class EntriesService {
   async list() {
     return prisma.entry.findMany({
       orderBy: { createdAt: "desc" },
-      include: { loan: true },
+      include: { loan: true, insurance: true },
     });
   }
 
   async findById(id: string) {
     return prisma.entry.findUnique({
       where: { id },
-      include: { loan: true },
+      include: { loan: true, insurance: true },
     });
   }
 
