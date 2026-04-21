@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Building2, BarChart3, Shield, MoreHorizontal } from "lucide-react";
+import { Building2, BarChart3, Shield, MoreHorizontal } from "lucide-react";
 
 const tabs = [
   { href: "/assets", icon: Building2, label: "資產" },
   { href: "/transactions", icon: BarChart3, label: "收支" },
-  { href: "/dashboard", icon: Home, label: "儀表板" },
   { href: "/insurance", icon: Shield, label: "保險" },
   { href: "/more", icon: MoreHorizontal, label: "更多" },
 ];
