@@ -78,7 +78,20 @@ export function AccountFormPage({
   editItem,
   nameSuggestion,
 }: Props) {
-  const { addEntry, updateEntry, fetchAll } = useFinanceStore();
+  const { addEntry, updateEntry, fetchAll, entries } = useFinanceStore();
+
+  const twHoldings = useMemo<StockItem[]>(() => {
+    const seen = new Set<string>();
+    return entries
+      .filter((e) => e.subCategory === "台股" && e.stockCode)
+      .filter((e) => {
+        if (seen.has(e.stockCode!)) return false;
+        seen.add(e.stockCode!);
+        return true;
+      })
+      .map((e) => ({ code: e.stockCode!, name: e.name }));
+  }, [entries]);
+
   const isEdit = !!editItem;
   const isInvestment = topCategory === "投資" && INVESTMENT_CATEGORIES.includes(subCategoryName);
   const isLoan = LOAN_SUBCATEGORIES.includes(subCategoryName);
@@ -663,13 +676,24 @@ export function AccountFormPage({
       </div>
 
       {/* Stock picker — slides in on top at z-80 */}
-      <StockPickerPage
-        open={showStockPicker}
-        onClose={() => setShowStockPicker(false)}
-        onSelect={handleSelectStock}
-        market={subCategoryName}
-        color={categoryColor}
-      />
+      {subCategoryName === "台股" ? (
+        <StockPickerPage
+          open={showStockPicker}
+          onClose={() => setShowStockPicker(false)}
+          onSelect={handleSelectStock}
+          market={subCategoryName}
+          color={categoryColor}
+          holdings={twHoldings}
+        />
+      ) : (
+        <StockPickerPage
+          open={showStockPicker}
+          onClose={() => setShowStockPicker(false)}
+          onSelect={handleSelectStock}
+          market={subCategoryName}
+          color={categoryColor}
+        />
+      )}
     </>
   );
 }
