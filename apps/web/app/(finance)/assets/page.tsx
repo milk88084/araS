@@ -21,8 +21,11 @@ import {
 } from "../../../components/finance/categoryConfig";
 import { LoanDetailSheet } from "../../../components/finance/LoanDetailSheet";
 import { LoanSummaryCard } from "../../../components/finance/LoanSummaryCard";
+import { InsuranceDetailSheet } from "../../../components/finance/InsuranceDetailSheet";
+import { InsuranceSummaryCard } from "../../../components/finance/InsuranceSummaryCard";
 import { calculateLoanStatus } from "@repo/shared";
 import type { Loan } from "@repo/shared";
+import type { Insurance } from "@repo/shared";
 
 interface FormConfig {
   topCategory: string;
@@ -53,6 +56,11 @@ export default function AssetsPage() {
   const [hideBalance, setHideBalance] = useState(false);
   const [showLoanDetail, setShowLoanDetail] = useState(false);
   const [loanDetailData, setLoanDetailData] = useState<{ loan: Loan; color: string } | null>(null);
+  const [showInsuranceDetail, setShowInsuranceDetail] = useState(false);
+  const [insuranceDetailData, setInsuranceDetailData] = useState<{
+    insurance: Insurance;
+    color: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchAll();
@@ -93,6 +101,11 @@ export default function AssetsPage() {
       const topCat = getTopCategory(entry.topCategory);
       setLoanDetailData({ loan: entry.loan, color: topCat?.color ?? "#C7C7D4" });
       setShowLoanDetail(true);
+      return;
+    } else if (entry.insurance) {
+      const topCat = getTopCategory(entry.topCategory);
+      setInsuranceDetailData({ insurance: entry.insurance, color: topCat?.color ?? "#7B7EC4" });
+      setShowInsuranceDetail(true);
       return;
     }
 
@@ -213,6 +226,9 @@ export default function AssetsPage() {
                 />
                 <div className="min-w-0 flex-1 overflow-hidden">
                   {cat.isLiability && <LoanSummaryCard loanEntries={cat.catEntries} />}
+                  {!cat.isLiability && cat.catEntries.some((e) => e.insurance != null) && (
+                    <InsuranceSummaryCard insuranceEntries={cat.catEntries} />
+                  )}
                   <FinanceCategoryCard
                     name={cat.name}
                     color={cat.color}
@@ -284,6 +300,19 @@ export default function AssetsPage() {
           onClose={() => {
             setShowLoanDetail(false);
             setLoanDetailData(null);
+          }}
+          onRateUpdated={fetchAll}
+        />
+      )}
+
+      {insuranceDetailData && (
+        <InsuranceDetailSheet
+          open={showInsuranceDetail}
+          insurance={insuranceDetailData.insurance}
+          color={insuranceDetailData.color}
+          onClose={() => {
+            setShowInsuranceDetail(false);
+            setInsuranceDetailData(null);
           }}
           onRateUpdated={fetchAll}
         />
