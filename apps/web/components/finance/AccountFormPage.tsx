@@ -676,24 +676,14 @@ export function AccountFormPage({
       </div>
 
       {/* Stock picker — slides in on top at z-80 */}
-      {subCategoryName === "台股" ? (
-        <StockPickerPage
-          open={showStockPicker}
-          onClose={() => setShowStockPicker(false)}
-          onSelect={handleSelectStock}
-          market={subCategoryName}
-          color={categoryColor}
-          holdings={twHoldings}
-        />
-      ) : (
-        <StockPickerPage
-          open={showStockPicker}
-          onClose={() => setShowStockPicker(false)}
-          onSelect={handleSelectStock}
-          market={subCategoryName}
-          color={categoryColor}
-        />
-      )}
+      <StockPickerPage
+        open={showStockPicker}
+        onClose={() => setShowStockPicker(false)}
+        onSelect={handleSelectStock}
+        market={subCategoryName}
+        color={categoryColor}
+        {...(subCategoryName === "台股" && { holdings: twHoldings })}
+      />
     </>
   );
 }
