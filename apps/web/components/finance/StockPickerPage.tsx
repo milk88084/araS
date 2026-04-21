@@ -167,9 +167,27 @@ export function StockPickerPage({ open, onClose, onSelect, market, color, holdin
         });
     } else {
       fetchedMarket.current = null;
-      fetchStocks(market, setStocks, setLoading, setError);
+      setLoading(true);
+      setError(null);
+      const fetcher =
+        market === "美股"
+          ? fetchUSStocks
+          : market === "加密貨幣"
+            ? fetchCryptoList
+            : fetchTWListedStocks;
+      fetcher()
+        .then((items) => {
+          if (cancelRetryRef.current) return;
+          setStocks(items);
+        })
+        .catch(() => {
+          if (!cancelRetryRef.current) setError("無法載入股票清單，請檢查網路連線");
+        })
+        .finally(() => {
+          if (!cancelRetryRef.current) setLoading(false);
+        });
     }
-  }, [isTW, query, market]);
+  }, [isTW, query, market, setStocks, setLoading, setError]);
 
   const MAX_DISPLAY = 100;
 
