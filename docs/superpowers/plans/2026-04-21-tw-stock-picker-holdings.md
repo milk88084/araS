@@ -89,7 +89,7 @@ describe("mergeExchangeStocks", () => {
 - [ ] **Step 2: Run tests to confirm they fail**
 
 ```bash
-pnpm --filter @repo/web test -- apps/web/tests/api/stocksMergeTw.test.ts
+pnpm --filter @repo/web test -- tests/api/stocksMergeTw.test.ts
 ```
 
 Expected: FAIL — `mergeExchangeStocks` module not found.
@@ -132,7 +132,7 @@ export function mergeExchangeStocks(
 - [ ] **Step 4: Run tests to confirm they pass**
 
 ```bash
-pnpm --filter @repo/web test -- apps/web/tests/api/stocksMergeTw.test.ts
+pnpm --filter @repo/web test -- tests/api/stocksMergeTw.test.ts
 ```
 
 Expected: 6 tests PASS.
@@ -200,7 +200,7 @@ export async function GET() {
 - [ ] **Step 6: Re-run tests to confirm still green**
 
 ```bash
-pnpm --filter @repo/web test -- apps/web/tests/api/stocksMergeTw.test.ts
+pnpm --filter @repo/web test -- tests/api/stocksMergeTw.test.ts
 ```
 
 Expected: 6 tests PASS.
