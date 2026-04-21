@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { ChevronLeft, Search, X } from "lucide-react";
 
 export interface StockItem {
@@ -51,6 +51,30 @@ const PRECIOUS_METALS: StockItem[] = [
   { code: "xap", name: "Spot platinum (U.S. Dollar/Ounce)" },
 ];
 
+function fetchStocks(
+  targetMarket: string,
+  setStocks: (s: StockItem[]) => void,
+  setLoading: (v: boolean) => void,
+  setError: (e: string | null) => void
+) {
+  if (targetMarket === "貴金屬") {
+    setStocks(PRECIOUS_METALS);
+    return;
+  }
+  setLoading(true);
+  setError(null);
+  const fetcher =
+    targetMarket === "美股"
+      ? fetchUSStocks
+      : targetMarket === "加密貨幣"
+        ? fetchCryptoList
+        : fetchTWListedStocks;
+  fetcher()
+    .then(setStocks)
+    .catch(() => setError("無法載入股票清單，請檢查網路連線"))
+    .finally(() => setLoading(false));
+}
+
 export function StockPickerPage({ open, onClose, onSelect, market, color, holdings }: Props) {
   const isTW = market === "台股";
 
@@ -62,33 +86,18 @@ export function StockPickerPage({ open, onClose, onSelect, market, color, holdin
   const inputRef = useRef<HTMLInputElement>(null);
   const fetchedMarket = useRef<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelRetryRef = useRef(false);
 
   useEffect(() => {
     if (!open) {
+      cancelRetryRef.current = true;
       setQuery("");
       setApiStocks([]);
       setError(null);
+    } else {
+      cancelRetryRef.current = false;
     }
   }, [open]);
-
-  const fetchStocks = (targetMarket: string) => {
-    if (targetMarket === "貴金屬") {
-      setStocks(PRECIOUS_METALS);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const fetcher =
-      targetMarket === "美股"
-        ? fetchUSStocks
-        : targetMarket === "加密貨幣"
-          ? fetchCryptoList
-          : fetchTWListedStocks;
-    fetcher()
-      .then(setStocks)
-      .catch(() => setError("無法載入股票清單，請檢查網路連線"))
-      .finally(() => setLoading(false));
-  };
 
   useEffect(() => {
     if (!open || isTW) return;
@@ -96,7 +105,7 @@ export function StockPickerPage({ open, onClose, onSelect, market, color, holdin
     fetchedMarket.current = market;
     setStocks([]);
     setQuery("");
-    fetchStocks(market);
+    fetchStocks(market, setStocks, setLoading, setError);
   }, [open, market, isTW]);
 
   useEffect(() => {
@@ -110,25 +119,57 @@ export function StockPickerPage({ open, onClose, onSelect, market, color, holdin
       return;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
     debounceRef.current = setTimeout(() => {
       fetchTWListedStocks()
         .then((all) => {
+          if (cancelled) return;
           const q = query.trim().toLowerCase();
           const filtered = all.filter(
             (s) => s.code.toLowerCase().startsWith(q) || s.name.toLowerCase().includes(q)
           );
           setApiStocks(filtered);
         })
-        .catch(() => setError("無法載入股票清單，請檢查網路連線"))
-        .finally(() => setLoading(false));
+        .catch(() => {
+          if (!cancelled) setError("無法載入股票清單，請檢查網路連線");
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
     }, 300);
 
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query, isTW]);
+
+  const handleRetry = useCallback(() => {
+    if (isTW) {
+      setError(null);
+      setLoading(true);
+      const q = query.trim().toLowerCase();
+      fetchTWListedStocks()
+        .then((all) => {
+          if (cancelRetryRef.current) return;
+          const filtered = all.filter(
+            (s) => s.code.toLowerCase().startsWith(q) || s.name.toLowerCase().includes(q)
+          );
+          setApiStocks(filtered);
+        })
+        .catch(() => {
+          if (!cancelRetryRef.current) setError("無法載入股票清單，請檢查網路連線");
+        })
+        .finally(() => {
+          if (!cancelRetryRef.current) setLoading(false);
+        });
+    } else {
+      fetchedMarket.current = null;
+      fetchStocks(market, setStocks, setLoading, setError);
+    }
+  }, [isTW, query, market]);
 
   const MAX_DISPLAY = 100;
 
@@ -193,29 +234,7 @@ export function StockPickerPage({ open, onClose, onSelect, market, color, holdin
           ) : error ? (
             <div className="py-24 text-center">
               <p className="text-[14px] text-[#ff3b30]">{error}</p>
-              <button
-                onClick={() => {
-                  if (isTW) {
-                    setError(null);
-                    setLoading(true);
-                    const q = query.trim().toLowerCase();
-                    fetchTWListedStocks()
-                      .then((all) => {
-                        const filtered = all.filter(
-                          (s) =>
-                            s.code.toLowerCase().startsWith(q) || s.name.toLowerCase().includes(q)
-                        );
-                        setApiStocks(filtered);
-                      })
-                      .catch(() => setError("無法載入股票清單，請檢查網路連線"))
-                      .finally(() => setLoading(false));
-                  } else {
-                    fetchedMarket.current = null;
-                    fetchStocks(market);
-                  }
-                }}
-                className="mt-3 text-[14px] font-medium text-[#007aff]"
-              >
+              <button onClick={handleRetry} className="mt-3 text-[14px] font-medium text-[#007aff]">
                 重新載入
               </button>
             </div>
