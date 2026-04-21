@@ -14,6 +14,7 @@ interface Props {
   onSelect: (stock: StockItem) => void;
   market: string;
   color: string;
+  holdings?: StockItem[];
 }
 
 async function fetchTWListedStocks(): Promise<StockItem[]> {
@@ -50,13 +51,25 @@ const PRECIOUS_METALS: StockItem[] = [
   { code: "xap", name: "Spot platinum (U.S. Dollar/Ounce)" },
 ];
 
-export function StockPickerPage({ open, onClose, onSelect, market, color }: Props) {
+export function StockPickerPage({ open, onClose, onSelect, market, color, holdings }: Props) {
+  const isTW = market === "台股";
+
   const [stocks, setStocks] = useState<StockItem[]>([]);
+  const [apiStocks, setApiStocks] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const fetchedMarket = useRef<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setApiStocks([]);
+      setError(null);
+    }
+  }, [open]);
 
   const fetchStocks = (targetMarket: string) => {
     if (targetMarket === "貴金屬") {
@@ -78,28 +91,82 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
   };
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || isTW) return;
     if (fetchedMarket.current === market) return;
     fetchedMarket.current = market;
     setStocks([]);
     setQuery("");
     fetchStocks(market);
-  }, [open, market]);
+  }, [open, market, isTW]);
+
+  useEffect(() => {
+    if (!isTW) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (!query.trim()) {
+      setApiStocks([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    debounceRef.current = setTimeout(() => {
+      fetchTWListedStocks()
+        .then((all) => {
+          const q = query.trim().toLowerCase();
+          const filtered = all.filter(
+            (s) => s.code.toLowerCase().startsWith(q) || s.name.toLowerCase().includes(q)
+          );
+          setApiStocks(filtered);
+        })
+        .catch(() => setError("無法載入股票清單，請檢查網路連線"))
+        .finally(() => setLoading(false));
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, isTW]);
 
   const MAX_DISPLAY = 100;
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return stocks;
+  const displayed = useMemo(() => {
+    if (isTW) {
+      if (!query.trim()) return (holdings ?? []).slice(0, MAX_DISPLAY);
+      return apiStocks.slice(0, MAX_DISPLAY);
+    }
+    if (!query.trim()) return stocks.slice(0, MAX_DISPLAY);
     const q = query.trim().toLowerCase();
-    return stocks.filter((s) => s.code.startsWith(q) || s.name.toLowerCase().includes(q));
-  }, [stocks, query]);
+    return stocks
+      .filter((s) => s.code.toLowerCase().startsWith(q) || s.name.toLowerCase().includes(q))
+      .slice(0, MAX_DISPLAY);
+  }, [isTW, query, holdings, apiStocks, stocks]);
 
-  const displayed = filtered.slice(0, MAX_DISPLAY);
+  const totalCount = isTW
+    ? query.trim()
+      ? apiStocks.length
+      : (holdings ?? []).length
+    : query.trim()
+      ? stocks.filter((s) => {
+          const q = query.trim().toLowerCase();
+          return s.code.toLowerCase().startsWith(q) || s.name.toLowerCase().includes(q);
+        }).length
+      : stocks.length;
 
   const handleSelect = (stock: StockItem) => {
     onSelect(stock);
     onClose();
   };
+
+  const emptyMessage = isTW
+    ? query.trim()
+      ? `找不到「${query}」相關股票`
+      : "輸入代號或名稱搜尋台股"
+    : `找不到「${query}」相關股票`;
+
+  const showHoldingsLabel = isTW && !query.trim() && (holdings ?? []).length > 0;
 
   return (
     <div
@@ -107,7 +174,6 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
         open ? "translate-x-0" : "pointer-events-none translate-x-full"
       }`}
     >
-      {/* Header */}
       <div className="mx-auto w-full max-w-md shrink-0 px-4 pt-14 pb-3">
         <div className="flex items-center gap-3">
           <button
@@ -120,7 +186,6 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
         </div>
       </div>
 
-      {/* Stock list */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-md px-4">
           {loading ? (
@@ -130,20 +195,35 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
               <p className="text-[14px] text-[#ff3b30]">{error}</p>
               <button
                 onClick={() => {
-                  fetchedMarket.current = null;
-                  fetchStocks(market);
+                  if (isTW) {
+                    setError(null);
+                    setLoading(true);
+                    const q = query.trim().toLowerCase();
+                    fetchTWListedStocks()
+                      .then((all) => {
+                        const filtered = all.filter(
+                          (s) =>
+                            s.code.toLowerCase().startsWith(q) || s.name.toLowerCase().includes(q)
+                        );
+                        setApiStocks(filtered);
+                      })
+                      .catch(() => setError("無法載入股票清單，請檢查網路連線"))
+                      .finally(() => setLoading(false));
+                  } else {
+                    fetchedMarket.current = null;
+                    fetchStocks(market);
+                  }
                 }}
                 className="mt-3 text-[14px] font-medium text-[#007aff]"
               >
                 重新載入
               </button>
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="py-24 text-center text-[14px] text-[#8e8e93]">
-              找不到「{query}」相關股票
-            </div>
+          ) : displayed.length === 0 ? (
+            <div className="py-24 text-center text-[14px] text-[#8e8e93]">{emptyMessage}</div>
           ) : (
             <div className="divide-y divide-[#f2f2f7] pb-4">
+              {showHoldingsLabel && <p className="py-2 text-[12px] text-[#8e8e93]">現有持倉</p>}
               {displayed.map((stock) => (
                 <button
                   key={stock.code}
@@ -170,7 +250,7 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
                   </div>
                 </button>
               ))}
-              {filtered.length > MAX_DISPLAY && (
+              {totalCount > MAX_DISPLAY && (
                 <p className="py-4 text-center text-[13px] text-[#8e8e93]">
                   顯示前 {MAX_DISPLAY} 筆，請輸入更多字縮小範圍
                 </p>
@@ -180,7 +260,6 @@ export function StockPickerPage({ open, onClose, onSelect, market, color }: Prop
         </div>
       </div>
 
-      {/* Search bar — fixed at bottom */}
       <div className="mx-auto w-full max-w-md shrink-0 px-4 pt-3 pb-10">
         <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-sm">
           <Search size={16} className="shrink-0 text-[#8e8e93]" />
