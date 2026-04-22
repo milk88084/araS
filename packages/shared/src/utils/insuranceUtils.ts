@@ -61,7 +61,7 @@ export function calculateIRR(
   return Math.round(irr * 10000) / 100;
 }
 
-interface PolicyValues {
+export interface PolicyValues {
   surrenderValue: number;
   accumulatedBonus: number;
   accumulatedSumIncrease: number;
