@@ -49,7 +49,7 @@ export function PolicyDetailSheet({ open, insurance, onClose }: Props) {
     },
   ];
 
-  const startDate = new Date(insurance.startDate);
+  const [startYear, startMonth, startDay] = insurance.startDate.slice(0, 10).split("-");
 
   return (
     <div
@@ -86,7 +86,7 @@ export function PolicyDetailSheet({ open, insurance, onClose }: Props) {
               },
               {
                 label: "起保日期",
-                value: `${startDate.getFullYear()}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${String(startDate.getDate()).padStart(2, "0")}`,
+                value: `${startYear}/${startMonth}/${startDay}`,
               },
               {
                 label: "幣別",
