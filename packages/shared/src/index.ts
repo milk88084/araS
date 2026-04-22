@@ -4,5 +4,8 @@ export {
   getLiveValue,
   projectFutureGrowth,
   calculateIRR,
+  getNetAssetValue,
+  getCostBasis,
+  getAccumulatedGrowth,
   type ProjectionRow,
 } from "./utils/insuranceUtils";
