@@ -82,7 +82,7 @@ export const CreateInsuranceSchema = z.object({
   name: z.string().min(1, "名稱為必填"),
   currency: z.string().default("USD"),
   declaredRate: z.number().min(0).max(20),
-  premiumTotal: z.number().positive("保費必須大於 0"),
+  premiumTotal: z.number().positive("保費必須大於 0").optional(),
   currentAge: z.number().int().min(0).max(120),
   startDate: z.string(),
   cashValueData: z.array(CashValueRowSchema).min(1, "請至少輸入一年的現金價值"),

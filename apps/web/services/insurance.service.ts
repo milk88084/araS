@@ -7,20 +7,22 @@ export class InsuranceService {
       data;
 
     return prisma.$transaction(async (tx) => {
+      const premiumValue = premiumTotal ?? 0;
+
       const entry = await tx.entry.create({
         data: {
           name,
           topCategory: "固定資產",
           subCategory: "保險",
-          value: premiumTotal,
+          value: premiumValue,
         },
       });
 
       await tx.entryHistory.create({
         data: {
           entryId: entry.id,
-          delta: premiumTotal,
-          balance: premiumTotal,
+          delta: premiumValue,
+          balance: premiumValue,
         },
       });
 
@@ -29,7 +31,7 @@ export class InsuranceService {
           entryId: entry.id,
           currency: currency ?? "USD",
           declaredRate,
-          premiumTotal,
+          premiumTotal: premiumTotal ?? null,
           currentAge,
           startDate: new Date(startDate),
           cashValueData,
