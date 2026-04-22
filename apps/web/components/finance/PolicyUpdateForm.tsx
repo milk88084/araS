@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft } from "lucide-react";
 import type { Insurance } from "@repo/shared";
 
@@ -12,18 +12,31 @@ interface Props {
 }
 
 export function PolicyUpdateForm({ open, insurance, onClose, onSaved }: Props) {
-  const [surrenderValue, setSurrenderValue] = useState(String(insurance.surrenderValue || ""));
+  const [surrenderValue, setSurrenderValue] = useState(
+    insurance.surrenderValue !== 0 ? String(insurance.surrenderValue) : ""
+  );
   const [accumulatedBonus, setAccumulatedBonus] = useState(
-    String(insurance.accumulatedBonus || "")
+    insurance.accumulatedBonus !== 0 ? String(insurance.accumulatedBonus) : ""
   );
   const [accumulatedSumIncrease, setAccumulatedSumIncrease] = useState(
-    String(insurance.accumulatedSumIncrease || "")
+    insurance.accumulatedSumIncrease !== 0 ? String(insurance.accumulatedSumIncrease) : ""
   );
   const [premiumTotal, setPremiumTotal] = useState(
     insurance.premiumTotal != null ? String(insurance.premiumTotal) : ""
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setSurrenderValue(insurance.surrenderValue !== 0 ? String(insurance.surrenderValue) : "");
+    setAccumulatedBonus(insurance.accumulatedBonus !== 0 ? String(insurance.accumulatedBonus) : "");
+    setAccumulatedSumIncrease(
+      insurance.accumulatedSumIncrease !== 0 ? String(insurance.accumulatedSumIncrease) : ""
+    );
+    setPremiumTotal(insurance.premiumTotal != null ? String(insurance.premiumTotal) : "");
+    setError(null);
+  }, [open, insurance.id]);
 
   const handleSubmit = async () => {
     const sv = parseFloat(surrenderValue);
@@ -43,7 +56,12 @@ export function PolicyUpdateForm({ open, insurance, onClose, onSaved }: Props) {
       };
       if (premiumTotal !== "") {
         const pt = parseFloat(premiumTotal);
-        if (!isNaN(pt) && pt > 0) body.premiumTotal = pt;
+        if (isNaN(pt) || pt <= 0) {
+          setError("保費總額必須大於 0");
+          setSaving(false);
+          return;
+        }
+        body.premiumTotal = pt;
       }
       const res = await fetch(`/api/insurance/${insurance.id}/values`, {
         method: "PATCH",
