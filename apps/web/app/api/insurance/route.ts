@@ -3,6 +3,15 @@ import { CreateInsuranceSchema } from "@repo/shared";
 import { insuranceService } from "@/services/insurance.service";
 import { ok, handleError } from "@/lib/api-response";
 
+export async function GET() {
+  try {
+    const policies = await insuranceService.findAll();
+    return ok(policies);
+  } catch (e) {
+    return handleError(e);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const data = CreateInsuranceSchema.parse(await req.json());
