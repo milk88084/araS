@@ -45,8 +45,9 @@ export function InsuranceDetailSheet({ open, insurance, color, onClose, onRateUp
     [insurance.startDate]
   );
 
-  const growth = currentValue - insurance.premiumTotal;
-  const growthPct = insurance.premiumTotal > 0 ? (growth / insurance.premiumTotal) * 100 : 0;
+  const premiumTotal = insurance.premiumTotal ?? 0;
+  const growth = currentValue - premiumTotal;
+  const growthPct = premiumTotal > 0 ? (growth / premiumTotal) * 100 : 0;
 
   const sortedCashValues = useMemo(
     () => [...insurance.cashValueData].sort((a, b) => a.policyYear - b.policyYear),
@@ -109,7 +110,10 @@ export function InsuranceDetailSheet({ open, insurance, color, onClose, onRateUp
               },
               {
                 label: "保費總額",
-                value: `$${insurance.premiumTotal.toLocaleString()}`,
+                value:
+                  insurance.premiumTotal != null
+                    ? `$${insurance.premiumTotal.toLocaleString()}`
+                    : "—",
               },
               {
                 label: "保單年度",
