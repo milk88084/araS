@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import type { CreateInsurance, UpdateInsuranceRate } from "@repo/shared";
+import type {
+  CreateInsurance,
+  UpdateInsuranceRate,
+  UpdateInsurancePolicyValues,
+} from "@repo/shared";
 
 export class InsuranceService {
   async create(data: CreateInsurance) {
@@ -7,22 +11,20 @@ export class InsuranceService {
       data;
 
     return prisma.$transaction(async (tx) => {
-      const premiumValue = premiumTotal ?? 0;
-
       const entry = await tx.entry.create({
         data: {
           name,
           topCategory: "固定資產",
           subCategory: "保險",
-          value: premiumValue,
+          value: premiumTotal ?? 0,
         },
       });
 
       await tx.entryHistory.create({
         data: {
           entryId: entry.id,
-          delta: premiumValue,
-          balance: premiumValue,
+          delta: premiumTotal ?? 0,
+          balance: premiumTotal ?? 0,
         },
       });
 
@@ -39,6 +41,13 @@ export class InsuranceService {
       });
 
       return { ...entry, insurance };
+    });
+  }
+
+  async findAll() {
+    return prisma.insurance.findMany({
+      include: { entry: true },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -62,6 +71,19 @@ export class InsuranceService {
       data: {
         declaredRate: data.declaredRate,
         ...(data.cashValueData !== undefined && { cashValueData: data.cashValueData }),
+      },
+    });
+  }
+
+  async updateValues(id: string, data: UpdateInsurancePolicyValues) {
+    return prisma.insurance.update({
+      where: { id },
+      data: {
+        surrenderValue: data.surrenderValue,
+        accumulatedBonus: data.accumulatedBonus,
+        accumulatedSumIncrease: data.accumulatedSumIncrease,
+        ...(data.premiumTotal !== undefined && { premiumTotal: data.premiumTotal }),
+        lastUpdatedAt: new Date(),
       },
     });
   }
