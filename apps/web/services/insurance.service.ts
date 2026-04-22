@@ -76,15 +76,24 @@ export class InsuranceService {
   }
 
   async updateValues(id: string, data: UpdateInsurancePolicyValues) {
-    return prisma.insurance.update({
-      where: { id },
-      data: {
-        surrenderValue: data.surrenderValue,
-        accumulatedBonus: data.accumulatedBonus,
-        accumulatedSumIncrease: data.accumulatedSumIncrease,
-        ...(data.premiumTotal !== undefined && { premiumTotal: data.premiumTotal }),
-        lastUpdatedAt: new Date(),
-      },
+    return prisma.$transaction(async (tx) => {
+      const insurance = await tx.insurance.update({
+        where: { id },
+        data: {
+          surrenderValue: data.surrenderValue,
+          accumulatedBonus: data.accumulatedBonus,
+          accumulatedSumIncrease: data.accumulatedSumIncrease,
+          ...(data.premiumTotal !== undefined && { premiumTotal: data.premiumTotal }),
+          lastUpdatedAt: new Date(),
+        },
+      });
+
+      await tx.entry.update({
+        where: { id: insurance.entryId },
+        data: { value: data.surrenderValue + data.accumulatedBonus },
+      });
+
+      return insurance;
     });
   }
 
