@@ -42,8 +42,6 @@ export function PolicySummaryCard({ insurance, onUpdate, onViewDetail }: Props) 
     [insurance]
   );
 
-  const gainPositive = (unrealizedGain ?? 0) >= 0;
-
   return (
     <div className="rounded-2xl bg-white px-4 py-5 shadow-sm">
       {/* Header */}
@@ -77,7 +75,7 @@ export function PolicySummaryCard({ insurance, onUpdate, onViewDetail }: Props) 
       </div>
 
       {/* Cost basis row */}
-      {costBasis !== null && (
+      {costBasis !== null && unrealizedGain !== null && returnPct !== null && (
         <div className="mt-3 flex items-center justify-between rounded-xl bg-[#f2f2f7] px-3 py-2.5">
           <div>
             <p className="text-[11px] text-[#8e8e93]">保費成本</p>
@@ -89,13 +87,13 @@ export function PolicySummaryCard({ insurance, onUpdate, onViewDetail }: Props) 
             <p className="text-[11px] text-[#8e8e93]">未實現損益</p>
             <p
               className="mt-0.5 text-[14px] font-bold"
-              style={{ color: gainPositive ? "#34c759" : "#ff3b30" }}
+              style={{ color: unrealizedGain >= 0 ? "#34c759" : "#ff3b30" }}
             >
-              {gainPositive ? "+" : ""}
-              {formatUSD(unrealizedGain!)}
+              {unrealizedGain >= 0 ? "+" : ""}
+              {formatUSD(unrealizedGain)}
               <span className="ml-1 text-[12px]">
-                ({gainPositive ? "+" : ""}
-                {returnPct!.toFixed(1)}%)
+                ({unrealizedGain >= 0 ? "+" : ""}
+                {returnPct.toFixed(1)}%)
               </span>
             </p>
           </div>
