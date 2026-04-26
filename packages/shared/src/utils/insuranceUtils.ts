@@ -60,3 +60,44 @@ export function calculateIRR(
   const irr = Math.pow(currentValue / premiumTotal, 1 / yearsElapsed) - 1;
   return Math.round(irr * 10000) / 100;
 }
+
+export interface PolicyValues {
+  surrenderValue: number;
+  accumulatedBonus: number;
+  accumulatedSumIncrease: number;
+  premiumTotal: number | null;
+  sumInsured: number;
+}
+
+const FALLBACK_RATE = 31.5;
+
+export function getNetAssetValue(
+  policy: PolicyValues,
+  exchangeRate = FALLBACK_RATE
+): { usd: number; twd: number } {
+  const usd = policy.surrenderValue + policy.accumulatedBonus;
+  return { usd, twd: usd * exchangeRate };
+}
+
+export function getCostBasis(policy: PolicyValues): {
+  costBasis: number | null;
+  unrealizedGain: number | null;
+  returnPct: number | null;
+} {
+  if (policy.premiumTotal === null) {
+    return { costBasis: null, unrealizedGain: null, returnPct: null };
+  }
+  const unrealizedGain = policy.surrenderValue - policy.premiumTotal;
+  const returnPct = (unrealizedGain / policy.premiumTotal) * 100;
+  return { costBasis: policy.premiumTotal, unrealizedGain, returnPct };
+}
+
+export function getAccumulatedGrowth(policy: PolicyValues): {
+  additionalDeathBenefit: number;
+  interestAccumulation: number;
+} {
+  return {
+    additionalDeathBenefit: policy.accumulatedSumIncrease,
+    interestAccumulation: policy.accumulatedBonus,
+  };
+}

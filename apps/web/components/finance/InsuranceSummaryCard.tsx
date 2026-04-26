@@ -21,12 +21,12 @@ export function InsuranceSummaryCard({ insuranceEntries }: Props) {
     const currentValue = getLiveValue(ins.cashValueData, ins.startDate, today);
     const yearsElapsed =
       (Date.now() - new Date(ins.startDate).getTime()) / (365.25 * 24 * 3600 * 1000);
-    const irr = calculateIRR(ins.premiumTotal, currentValue, yearsElapsed);
+    const irr = calculateIRR(ins.premiumTotal ?? 0, currentValue, yearsElapsed);
     return { ins, currentValue, irr };
   });
 
   const totalCurrentValue = policies.reduce((s, p) => s + p.currentValue, 0);
-  const totalPremium = policies.reduce((s, p) => s + p.ins.premiumTotal, 0);
+  const totalPremium = policies.reduce((s, p) => s + (p.ins.premiumTotal ?? 0), 0);
   const averageIRR =
     policies.length > 0 ? policies.reduce((s, p) => s + p.irr, 0) / policies.length : 0;
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { mergeExchangeStocks } from "./mergeExchangeStocks.js";
+import { mergeExchangeStocks } from "./mergeExchangeStocks";
 
 // TWSE: all securities traded today (stocks + equity ETFs + bond ETFs listed on TWSE)
 const TWSE_ALL = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL";

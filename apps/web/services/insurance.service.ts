@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import type { CreateInsurance, UpdateInsuranceRate } from "@repo/shared";
+import type {
+  CreateInsurance,
+  UpdateInsuranceRate,
+  UpdateInsurancePolicyValues,
+} from "@repo/shared";
 
 export class InsuranceService {
   async create(data: CreateInsurance) {
@@ -12,15 +16,15 @@ export class InsuranceService {
           name,
           topCategory: "固定資產",
           subCategory: "保險",
-          value: premiumTotal,
+          value: premiumTotal ?? 0,
         },
       });
 
       await tx.entryHistory.create({
         data: {
           entryId: entry.id,
-          delta: premiumTotal,
-          balance: premiumTotal,
+          delta: premiumTotal ?? 0,
+          balance: premiumTotal ?? 0,
         },
       });
 
@@ -29,7 +33,7 @@ export class InsuranceService {
           entryId: entry.id,
           currency: currency ?? "USD",
           declaredRate,
-          premiumTotal,
+          premiumTotal: premiumTotal ?? null,
           currentAge,
           startDate: new Date(startDate),
           cashValueData,
@@ -37,6 +41,13 @@ export class InsuranceService {
       });
 
       return { ...entry, insurance };
+    });
+  }
+
+  async findAll() {
+    return prisma.insurance.findMany({
+      include: { entry: true },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -61,6 +72,28 @@ export class InsuranceService {
         declaredRate: data.declaredRate,
         ...(data.cashValueData !== undefined && { cashValueData: data.cashValueData }),
       },
+    });
+  }
+
+  async updateValues(id: string, data: UpdateInsurancePolicyValues) {
+    return prisma.$transaction(async (tx) => {
+      const insurance = await tx.insurance.update({
+        where: { id },
+        data: {
+          surrenderValue: data.surrenderValue,
+          accumulatedBonus: data.accumulatedBonus,
+          accumulatedSumIncrease: data.accumulatedSumIncrease,
+          ...(data.premiumTotal !== undefined && { premiumTotal: data.premiumTotal }),
+          lastUpdatedAt: new Date(),
+        },
+      });
+
+      await tx.entry.update({
+        where: { id: insurance.entryId },
+        data: { value: data.surrenderValue + data.accumulatedBonus },
+      });
+
+      return insurance;
     });
   }
 

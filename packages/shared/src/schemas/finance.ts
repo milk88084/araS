@@ -65,6 +65,14 @@ export const InsuranceSchema = z.object({
   currentAge: z.number().int(),
   startDate: z.string(),
   cashValueData: z.array(CashValueRowSchema),
+  policyNumber: z.string().nullable().optional(),
+  insurer: z.string().nullable().optional(),
+  sumInsured: z.number(),
+  surrenderValue: z.number(),
+  accumulatedBonus: z.number(),
+  accumulatedSumIncrease: z.number(),
+  lastUpdatedAt: z.string().nullable().optional(),
+  isPeriodicPayout: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -74,7 +82,7 @@ export const CreateInsuranceSchema = z.object({
   name: z.string().min(1, "名稱為必填"),
   currency: z.string().default("USD"),
   declaredRate: z.number().min(0).max(20),
-  premiumTotal: z.number().positive("保費必須大於 0"),
+  premiumTotal: z.number().positive("保費必須大於 0").optional(),
   currentAge: z.number().int().min(0).max(120),
   startDate: z.string(),
   cashValueData: z.array(CashValueRowSchema).min(1, "請至少輸入一年的現金價值"),
@@ -86,6 +94,14 @@ export const UpdateInsuranceRateSchema = z.object({
   cashValueData: z.array(CashValueRowSchema).optional(),
 });
 export type UpdateInsuranceRate = z.infer<typeof UpdateInsuranceRateSchema>;
+
+export const UpdateInsurancePolicyValuesSchema = z.object({
+  surrenderValue: z.number().nonnegative(),
+  accumulatedBonus: z.number().nonnegative(),
+  accumulatedSumIncrease: z.number().nonnegative(),
+  premiumTotal: z.number().positive().optional(),
+});
+export type UpdateInsurancePolicyValues = z.infer<typeof UpdateInsurancePolicyValuesSchema>;
 
 // Entry (unified asset + liability)
 export const EntrySchema = z.object({
