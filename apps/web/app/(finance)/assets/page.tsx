@@ -20,9 +20,7 @@ import {
   getTopCategory,
 } from "../../../components/finance/categoryConfig";
 import { LoanDetailSheet } from "../../../components/finance/LoanDetailSheet";
-import { LoanSummaryCard } from "../../../components/finance/LoanSummaryCard";
 import { InsuranceDetailSheet } from "../../../components/finance/InsuranceDetailSheet";
-import { InsuranceSummaryCard } from "../../../components/finance/InsuranceSummaryCard";
 import { calculateLoanStatus } from "@repo/shared";
 import type { Loan } from "@repo/shared";
 import type { Insurance } from "@repo/shared";
@@ -225,10 +223,6 @@ export default function AssetsPage() {
                   style={{ backgroundColor: cat.color }}
                 />
                 <div className="min-w-0 flex-1 overflow-hidden">
-                  {cat.isLiability && <LoanSummaryCard loanEntries={cat.catEntries} />}
-                  {!cat.isLiability && cat.catEntries.some((e) => e.insurance != null) && (
-                    <InsuranceSummaryCard insuranceEntries={cat.catEntries} />
-                  )}
                   <FinanceCategoryCard
                     name={cat.name}
                     color={cat.color}

@@ -1,35 +1,51 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Building2, BarChart3, Shield, MoreHorizontal } from "lucide-react";
+import { useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Building2, BarChart3, Shield, Landmark, Loader2 } from "lucide-react";
 
 const tabs = [
   { href: "/assets", icon: Building2, label: "資產" },
   { href: "/transactions", icon: BarChart3, label: "收支" },
+  { href: "/loans", icon: Landmark, label: "貸款" },
   { href: "/insurance", icon: Shield, label: "保險" },
-  { href: "/more", icon: MoreHorizontal, label: "更多" },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  const navigate = (href: string) => {
+    if (href === pathname) return;
+    setPendingHref(href);
+    startTransition(() => {
+      router.push(href);
+    });
+  };
 
   return (
-    <nav className="fixed right-0 bottom-0 left-0 z-50 border-t border-[#e5e5ea] bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-md">
+    <nav className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+      <div className="flex items-center gap-1 rounded-full bg-white/70 px-3 py-2 shadow-lg ring-1 ring-black/5 backdrop-blur-xl">
         {tabs.map(({ href, icon: Icon, label }) => {
           const active = pathname === href;
+          const loading = isPending && pendingHref === href;
           return (
-            <Link
+            <button
               key={href}
-              href={href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
-                active ? "text-[#007aff]" : "text-[#c7c7cc]"
+              onClick={() => navigate(href)}
+              aria-label={label}
+              className={`flex items-center justify-center rounded-full p-3 transition-colors ${
+                active ? "bg-black/8 text-black" : "text-[#c7c7cc] hover:text-[#8e8e93]"
               }`}
             >
-              <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />
-              <span>{label}</span>
-            </Link>
+              {loading ? (
+                <Loader2 size={22} className="animate-spin" />
+              ) : (
+                <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />
+              )}
+            </button>
           );
         })}
       </div>

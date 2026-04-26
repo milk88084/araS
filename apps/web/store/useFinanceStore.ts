@@ -65,7 +65,7 @@ export const useFinanceStore = create<FinanceState>()(
       transactions: [],
       portfolio: [],
       valueSnapshots: [],
-      loading: false,
+      loading: true,
       error: null,
 
       fetchAll: async () => {

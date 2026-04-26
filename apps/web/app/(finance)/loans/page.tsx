@@ -2,16 +2,16 @@
 
 import { useEffect } from "react";
 import { useFinanceStore } from "../../../store/useFinanceStore";
-import { InsuranceSummaryCard } from "../../../components/finance/InsuranceSummaryCard";
+import { LoanSummaryCard } from "../../../components/finance/LoanSummaryCard";
 
-export default function InsurancePage() {
+export default function LoansPage() {
   const { fetchAll, entries, loading } = useFinanceStore();
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
-  const insuranceEntries = entries.filter((e) => e.insurance != null);
+  const loanEntries = entries.filter((e) => e.loan != null);
 
   if (loading) {
     return (
@@ -23,12 +23,12 @@ export default function InsurancePage() {
 
   return (
     <div className="px-4 pt-6 pb-8">
-      <h1 className="mb-4 text-xl font-bold text-[#1c1c1e]">保險</h1>
-      {insuranceEntries.length > 0 ? (
-        <InsuranceSummaryCard insuranceEntries={insuranceEntries} />
+      <h1 className="mb-4 text-xl font-bold text-[#1c1c1e]">貸款</h1>
+      {loanEntries.length > 0 ? (
+        <LoanSummaryCard loanEntries={loanEntries} />
       ) : (
         <div className="rounded-2xl bg-white p-10 text-center text-sm text-[#c7c7cc] shadow-sm">
-          尚無保險資料
+          尚無貸款資料
         </div>
       )}
     </div>
