@@ -164,7 +164,7 @@ export function FinanceCategoryCard({
                     >
                       {ASSET_ICON_MAP[item.name] ? (
                         <img
-                          src={encodeURI(ASSET_ICON_MAP[item.name])}
+                          src={encodeURI(ASSET_ICON_MAP[item.name]!)}
                           alt={item.name}
                           className="h-full w-full object-cover"
                         />

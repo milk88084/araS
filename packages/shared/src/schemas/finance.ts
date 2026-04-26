@@ -61,7 +61,7 @@ export const InsuranceSchema = z.object({
   entryId: z.string(),
   currency: z.string(),
   declaredRate: z.number(),
-  premiumTotal: z.number().nullable().optional(),
+  premiumTotal: z.number().nullable(),
   currentAge: z.number().int(),
   startDate: z.string(),
   cashValueData: z.array(CashValueRowSchema),
