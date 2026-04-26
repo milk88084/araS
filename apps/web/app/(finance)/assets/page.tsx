@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Eye, EyeOff } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Wallet } from "lucide-react";
@@ -21,9 +21,19 @@ import {
 } from "../../../components/finance/categoryConfig";
 import { LoanDetailSheet } from "../../../components/finance/LoanDetailSheet";
 import { InsuranceDetailSheet } from "../../../components/finance/InsuranceDetailSheet";
+import { useExchangeRate } from "../../../hooks/useExchangeRate";
 import { calculateLoanStatus } from "@repo/shared";
 import type { Loan } from "@repo/shared";
 import type { Insurance } from "@repo/shared";
+
+const STOCK_CATEGORIES = ["台股", "美股", "加密貨幣", "貴金屬"];
+const METAL_YF: Record<string, string> = { xau: "GC=F", xag: "SI=F", xap: "PL=F", xpd: "PA=F" };
+
+function toYfSymbol(subCategory: string, stockCode: string): string {
+  if (subCategory === "貴金屬") return METAL_YF[stockCode.toLowerCase()] ?? "";
+  const suffix = subCategory === "台股" ? ".TW" : subCategory === "加密貨幣" ? "-USD" : "";
+  return stockCode + suffix;
+}
 
 interface FormConfig {
   topCategory: string;
@@ -42,6 +52,9 @@ interface EditItem {
 
 export default function AssetsPage() {
   const { fetchAll, entries, loading, deleteEntry } = useFinanceStore();
+  const { convertToTWD } = useExchangeRate();
+  const [priceMap, setPriceMap] = useState<Record<string, number>>({});
+  const fetchedSymbols = useRef<Set<string>>(new Set());
   const assets = entries.filter((e) => e.topCategory !== "負債");
   const liabilities = entries.filter((e) => e.topCategory === "負債");
 
@@ -63,6 +76,34 @@ export default function AssetsPage() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  useEffect(() => {
+    const stockEntries = entries.filter(
+      (e) => e.stockCode && e.units && STOCK_CATEGORIES.includes(e.subCategory)
+    );
+    const newSymbols = stockEntries
+      .map((e) => toYfSymbol(e.subCategory, e.stockCode!))
+      .filter((s) => s && !fetchedSymbols.current.has(s));
+
+    if (newSymbols.length === 0) return;
+    newSymbols.forEach((s) => fetchedSymbols.current.add(s));
+
+    Promise.allSettled(
+      newSymbols.map((sym) =>
+        fetch(`/api/stocks/price?symbol=${encodeURIComponent(sym)}`)
+          .then((r) => r.json())
+          .then((d) => ({ sym, price: d.price as number }))
+      )
+    ).then((results) => {
+      const map: Record<string, number> = {};
+      for (const r of results) {
+        if (r.status === "fulfilled" && typeof r.value.price === "number") {
+          map[r.value.sym] = r.value.price;
+        }
+      }
+      setPriceMap((prev) => ({ ...prev, ...map }));
+    });
+  }, [entries]);
 
   const netWorth =
     assets.reduce((s, a) => s + a.value, 0) - liabilities.reduce((s, l) => s + l.value, 0);
@@ -207,10 +248,25 @@ export default function AssetsPage() {
                 );
                 loanPill = { paidMonths: status.paidMonths, termMonths: e.loan.termMonths };
               }
+
+              let marketValue: number | null = null;
+              let gain: number | null = null;
+              if (e.stockCode && e.units && STOCK_CATEGORIES.includes(e.subCategory)) {
+                const sym = toYfSymbol(e.subCategory, e.stockCode);
+                const price = priceMap[sym];
+                if (price !== undefined) {
+                  const rawValue = e.units * price;
+                  marketValue = e.subCategory === "台股" ? rawValue : convertToTWD(rawValue);
+                  gain = marketValue - e.value;
+                }
+              }
+
               return {
                 id: e.id,
                 name: e.name,
                 value: e.value,
+                marketValue,
+                gain,
                 updatedAt: e.updatedAt,
                 loan: loanPill,
               };

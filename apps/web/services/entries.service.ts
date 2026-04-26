@@ -3,10 +3,16 @@ import type { CreateEntry, UpdateEntry, UpdateEntryHistory } from "@repo/shared"
 
 export class EntriesService {
   async list() {
-    return prisma.entry.findMany({
+    const entries = await prisma.entry.findMany({
       orderBy: { createdAt: "desc" },
-      include: { loan: true, insurance: true },
+      include: { loan: true, insurance: true, history: { select: { units: true } } },
     });
+    return entries.map(({ history, ...e }) => ({
+      ...e,
+      units: history.some((h) => h.units != null)
+        ? history.reduce((s, h) => s + (h.units ?? 0), 0)
+        : null,
+    }));
   }
 
   async findById(id: string) {

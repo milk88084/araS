@@ -10,6 +10,8 @@ export interface CategoryItem {
   id: string;
   name: string;
   value: number;
+  marketValue?: number | null;
+  gain?: number | null;
   updatedAt: string;
   loan?: {
     paidMonths: number;
@@ -59,7 +61,7 @@ export function FinanceCategoryCard({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const total = items.reduce((s, i) => s + i.value, 0);
+  const total = items.reduce((s, i) => s + (i.marketValue ?? i.value), 0);
   const lastUpdated = items.reduce(
     (latest, i) => (i.updatedAt > latest ? i.updatedAt : latest),
     items[0]?.updatedAt ?? ""
@@ -200,8 +202,17 @@ export function FinanceCategoryCard({
                             style={{ color: isLiability ? "#ff3b30" : color }}
                           >
                             {isLiability && "-"}
-                            {formatCurrency(item.value)}
+                            {formatCurrency(item.marketValue ?? item.value)}
                           </p>
+                          {item.gain != null && (
+                            <p
+                              className="text-[12px] font-medium"
+                              style={{ color: item.gain >= 0 ? "#34c759" : "#ff3b30" }}
+                            >
+                              {item.gain >= 0 ? "+" : ""}
+                              {formatCurrency(item.gain)}
+                            </p>
+                          )}
                           <div className="mt-1 flex items-center justify-end gap-1">
                             {onDeleteItem && (
                               <button
