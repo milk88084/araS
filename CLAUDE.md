@@ -10,6 +10,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `/ship`     | Full delivery pipeline: lint → stage → commit → push with safety guardrails |
 | `/simplify` | Review recently changed code for quality and efficiency, then fix issues    |
 
+## First-time Setup
+
+```bash
+# 1. Copy env and fill in Supabase credentials
+cp .env.example .env
+
+# 2. Generate Prisma client (required before first run, and after schema changes)
+pnpm db:generate
+
+# 3. Start dev server
+pnpm dev
+```
+
+> **Important:** `.env` must have exactly one `DATABASE_URL` pointing to Supabase.
+> Never duplicate `DATABASE_URL` — the last value wins but it causes confusion.
+
 ## Commands
 
 ```bash

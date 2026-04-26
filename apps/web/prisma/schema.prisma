@@ -50,7 +50,7 @@ model Insurance {
   entry         Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
   currency      String   @default("USD")
   declaredRate  Float
-  premiumTotal  Float
+  premiumTotal  Float?
   currentAge    Int
   startDate     DateTime
   cashValueData Json

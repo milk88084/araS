@@ -162,7 +162,7 @@ export default function AssetsPage() {
     <div className="pt-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <p className="text-[15px] font-semibold text-[#1c1c1e]">Net Worth (TWD)</p>
+        <p className="px-4 text-[15px] font-semibold text-[#1c1c1e]">Net Worth (TWD)</p>
         <button onClick={() => setHideBalance((v) => !v)} className="active:opacity-60">
           {hideBalance ? (
             <EyeOff size={16} className="text-[#8e8e93]" />
