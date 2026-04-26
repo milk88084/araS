@@ -265,7 +265,16 @@ export function AccountFormPage({
     return () => {
       cancelled = true;
     };
-  }, [open, editItem, nameSuggestion, isInvestment, hasStockPicker, subCategoryName, isInsurance]);
+  }, [
+    open,
+    editItem,
+    nameSuggestion,
+    isInvestment,
+    hasStockPicker,
+    subCategoryName,
+    isInsurance,
+    isLoan,
+  ]);
 
   const handleSelectStock = (stock: StockItem) => {
     setSelectedStock(stock);

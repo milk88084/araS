@@ -6,6 +6,15 @@ import type { LucideIcon } from "lucide-react";
 import { formatCurrency } from "../../lib/format";
 import { Spinner } from "../ui/Spinner";
 
+const ASSET_ICON_MAP: Record<string, string> = {
+  "Bank of Taiwan": "/assets_icons/Bank of Taiwan.png",
+  "Cathay United Bank": "/assets_icons/Cathay United Bank.jpg",
+  Dawho: "/assets_icons/Dawho.png",
+  "Esun Bank": "/assets_icons/Esun Bank.jpg",
+  "Line Bank": "/assets_icons/Line Bank.png",
+  "New New Bank": "/assets_icons/New New Bank.png",
+};
+
 export interface CategoryItem {
   id: string;
   name: string;
@@ -150,10 +159,18 @@ export function FinanceCategoryCard({
                     className="flex w-full cursor-pointer items-center gap-3 px-4 py-3.5 active:bg-[#f2f2f7]"
                   >
                     <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full"
                       style={{ backgroundColor: color + "25" }}
                     >
-                      <Icon size={20} style={{ color }} />
+                      {ASSET_ICON_MAP[item.name] ? (
+                        <img
+                          src={encodeURI(ASSET_ICON_MAP[item.name])}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Icon size={20} style={{ color }} />
+                      )}
                     </div>
 
                     <div className="min-w-0 flex-1 text-left">
