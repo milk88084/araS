@@ -266,8 +266,13 @@ export function EntryDetailPage({
 
           {/* Value */}
           <p className="text-[38px] font-bold tracking-tight text-[#1c1c1e]">
-            {formatCurrency(entry.value)}
+            {formatCurrency(
+              isStockEntry && currentMarketValue != null ? currentMarketValue : entry.value
+            )}
           </p>
+          {isStockEntry && currentMarketValue != null && (
+            <p className="mt-0.5 text-[13px] text-[#8e8e93]">成本 {formatCurrency(entry.value)}</p>
+          )}
 
           {/* P&L summary (stocks only) */}
           {isStockEntry && (

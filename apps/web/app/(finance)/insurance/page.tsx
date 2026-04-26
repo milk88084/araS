@@ -19,7 +19,6 @@ export default function InsurancePage() {
       const res = await fetch("/api/insurance");
       if (!res.ok) throw new Error("fetch failed");
       const json = await res.json();
-      // API returns { success, data } envelope
       const data = json.data ?? json;
       setPolicies(Array.isArray(data) ? data : []);
     } catch {
@@ -42,7 +41,7 @@ export default function InsurancePage() {
   }
 
   return (
-    <div className="px-4 pt-6">
+    <div className="px-4 pt-6 pb-10">
       <h1 className="mb-4 text-xl font-bold text-[#1c1c1e]">保險</h1>
 
       {policies.length === 0 ? (
@@ -50,7 +49,7 @@ export default function InsurancePage() {
           尚無保單記錄
         </div>
       ) : (
-        <div className="space-y-4 pb-10">
+        <div className="space-y-4">
           {policies.map((policy) => (
             <PolicySummaryCard
               key={policy.id}

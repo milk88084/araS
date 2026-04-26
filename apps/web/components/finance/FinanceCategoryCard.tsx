@@ -6,10 +6,21 @@ import type { LucideIcon } from "lucide-react";
 import { formatCurrency } from "../../lib/format";
 import { Spinner } from "../ui/Spinner";
 
+const ASSET_ICON_MAP: Record<string, string> = {
+  "Bank of Taiwan": "/assets_icons/Bank of Taiwan.png",
+  "Cathay United Bank": "/assets_icons/Cathay United Bank.jpg",
+  Dawho: "/assets_icons/Dawho.png",
+  "Esun Bank": "/assets_icons/Esun Bank.jpg",
+  "Line Bank": "/assets_icons/Line Bank.png",
+  "New New Bank": "/assets_icons/New New Bank.png",
+};
+
 export interface CategoryItem {
   id: string;
   name: string;
   value: number;
+  marketValue?: number | null;
+  gain?: number | null;
   updatedAt: string;
   loan?: {
     paidMonths: number;
@@ -59,7 +70,7 @@ export function FinanceCategoryCard({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const total = items.reduce((s, i) => s + i.value, 0);
+  const total = items.reduce((s, i) => s + (i.marketValue ?? i.value), 0);
   const lastUpdated = items.reduce(
     (latest, i) => (i.updatedAt > latest ? i.updatedAt : latest),
     items[0]?.updatedAt ?? ""
@@ -148,10 +159,18 @@ export function FinanceCategoryCard({
                     className="flex w-full cursor-pointer items-center gap-3 px-4 py-3.5 active:bg-[#f2f2f7]"
                   >
                     <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full"
                       style={{ backgroundColor: color + "25" }}
                     >
-                      <Icon size={20} style={{ color }} />
+                      {ASSET_ICON_MAP[item.name] ? (
+                        <img
+                          src={encodeURI(ASSET_ICON_MAP[item.name])}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Icon size={20} style={{ color }} />
+                      )}
                     </div>
 
                     <div className="min-w-0 flex-1 text-left">
@@ -200,8 +219,17 @@ export function FinanceCategoryCard({
                             style={{ color: isLiability ? "#ff3b30" : color }}
                           >
                             {isLiability && "-"}
-                            {formatCurrency(item.value)}
+                            {formatCurrency(item.marketValue ?? item.value)}
                           </p>
+                          {item.gain != null && (
+                            <p
+                              className="text-[12px] font-medium"
+                              style={{ color: item.gain >= 0 ? "#34c759" : "#ff3b30" }}
+                            >
+                              {item.gain >= 0 ? "+" : ""}
+                              {formatCurrency(item.gain)}
+                            </p>
+                          )}
                           <div className="mt-1 flex items-center justify-end gap-1">
                             {onDeleteItem && (
                               <button
