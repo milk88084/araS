@@ -41,12 +41,12 @@ export function useExchangeRate(): {
         // Ignore parse errors — fall through to fetch
       }
 
-      // Fetch fresh rate
+      // Fetch fresh rate via server-side proxy (avoids CSP restrictions)
       try {
-        const res = await fetch("https://open.er-api.com/v6/latest/USD");
+        const res = await fetch("/api/exchange-rate");
         if (!res.ok) throw new Error("Non-OK response");
-        const data: { rates: { TWD: number } } = await res.json();
-        const fetched = data.rates.TWD;
+        const data: { TWD: number } = await res.json();
+        const fetched = data.TWD;
         if (!fetched || fetched <= 0) throw new Error("Invalid rate");
 
         const cached: CachedRate = { rate: fetched, timestamp: Date.now() };
