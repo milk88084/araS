@@ -35,6 +35,13 @@ interface Params {
   govPension: number;
 }
 
+interface ModalContent {
+  title: string;
+  description: string;
+  steps: { label: string; value?: string }[];
+  result: { label: string; value: string };
+}
+
 const DEFAULTS: Params = {
   currentAge: 30,
   retirementAge: 65,
@@ -131,15 +138,33 @@ function MetricCard({
   sub,
   color = "#1c1c1e",
   icon: Icon,
+  onClick,
 }: {
   label: string;
   value: string;
   sub?: string;
   color?: string;
   icon: React.ElementType;
+  onClick?: () => void;
 }) {
   return (
-    <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+    <div
+      className={`rounded-2xl bg-white px-4 py-3 shadow-sm${onClick ? "cursor-pointer transition-shadow hover:shadow-md" : ""}`}
+      role={onClick ? "button" : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      tabIndex={onClick ? 0 : undefined}
+      data-testid={onClick ? `metric-${label}` : undefined}
+    >
       <div className="mb-1 flex items-center gap-1.5">
         <Icon size={13} className="text-[#8e8e93]" />
         <span className="text-[12px] text-[#8e8e93]">{label}</span>
@@ -161,6 +186,72 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
+function InfoModal({ content, onClose }: { content: ModalContent; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      data-testid="modal-backdrop"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={content.title}
+        className="w-full max-w-[320px] rounded-2xl bg-white p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-start justify-between">
+          <div>
+            <p className="text-[11px] text-[#8e8e93]">計算說明</p>
+            <p className="text-[16px] font-bold text-[#1c1c1e]">{content.title}</p>
+          </div>
+          <button
+            aria-label="關閉"
+            onClick={onClose}
+            className="text-[20px] leading-none text-[#8e8e93]"
+          >
+            ×
+          </button>
+        </div>
+        <p className="mb-3 text-[12px] leading-relaxed text-[#3c3c43]">{content.description}</p>
+        <div className="rounded-xl bg-[#f2f2f7] px-3 py-3 text-[11px]">
+          <p className="mb-2 text-[10px] font-semibold tracking-wide text-[#8e8e93] uppercase">
+            公式
+          </p>
+          {content.steps.map((step) => (
+            <div key={step.label} className="flex justify-between py-0.5">
+              <span className="text-[#8e8e93]">{step.label}</span>
+              {step.value && (
+                <span className="ml-2 text-right font-medium text-[#1c1c1e]">{step.value}</span>
+              )}
+            </div>
+          ))}
+          <div className="my-2 border-t border-[#e5e5ea]" />
+          <div className="flex justify-between">
+            <span className="font-semibold text-[#1c1c1e]">{content.result.label}</span>
+            <span className="ml-2 text-right font-bold text-[#1c1c1e]">{content.result.value}</span>
+          </div>
+        </div>
+        <div className="mt-4 text-center">
+          <button
+            onClick={onClose}
+            className="rounded-xl bg-[#007aff] px-6 py-2 text-[13px] font-medium text-white"
+          >
+            了解了
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export function RetirementPage() {
@@ -169,6 +260,7 @@ export function RetirementPage() {
   const [initialized, setInitialized] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   const [showParams, setShowParams] = useState(true);
+  const [openModal, setOpenModal] = useState<string | null>(null);
   const [sensRate, setSensRate] = useState(DEFAULTS.accRate);
   const [sensAge, setSensAge] = useState(DEFAULTS.retirementAge);
 
@@ -352,6 +444,90 @@ export function RetirementPage() {
     return { fiAge: fia, fiYear, delta, target: tt };
   }, [sensRate, sensAge, params, netAssets, calcs.fiAge, currentYear]);
 
+  const modalContents = useMemo<Record<string, ModalContent>>(
+    () => ({
+      target: {
+        title: "目標總額",
+        description:
+          "依 SWR 法則，退休後每年需自行提領的金額除以安全提領率，反推退休時所需累積的總資產。",
+        steps: [
+          {
+            label: "退休後月支出（通膨調整）",
+            value: `NT$ ${fmtWan(Math.round(calcs.fme))} ／月`,
+          },
+          { label: "扣除政府退休金", value: `NT$ ${fmtWan(params.govPension)} ／月` },
+          { label: "年提領額 × 12", value: `NT$ ${fmtWan(Math.round(calcs.aw))} ／年` },
+          { label: `÷ SWR (${params.swr}%)` },
+        ],
+        result: { label: "目標總額", value: `NT$ ${fmtWan(Math.round(calcs.tt))}` },
+      },
+      gap: {
+        title: "退休缺口",
+        description: "退休目標總額與現有淨資產之間的差距，即目前尚需繼續累積的金額。",
+        steps: [
+          { label: "退休目標總額", value: `NT$ ${fmtWan(Math.round(calcs.tt))}` },
+          { label: "− 現有淨資產", value: `NT$ ${fmtWan(netAssets)}` },
+        ],
+        result: {
+          label: "退休缺口",
+          value: calcs.gap === 0 ? "已達標 ✓" : `NT$ ${fmtWan(Math.round(calcs.gap))}`,
+        },
+      },
+      fi: {
+        title: "財務自由預測",
+        description:
+          "從現在起，每年將資產以積累期報酬率複利成長，並持續加入每月投入，模擬何時首次達到退休目標總額。",
+        steps: [
+          { label: "起始淨資產", value: `NT$ ${fmtWan(netAssets)}` },
+          {
+            label: "每月定期投入 × 12",
+            value: `NT$ ${fmtWan(params.monthlyContrib * 12)} ／年`,
+          },
+          { label: "積累期年化報酬", value: `${params.accRate}%` },
+          { label: "目標總額", value: `NT$ ${fmtWan(Math.round(calcs.tt))}` },
+        ],
+        result: {
+          label: "財務自由年齡",
+          value: calcs.fiAge ? `${calcs.fiAge} 歲（${calcs.fiYear} 年）` : "100 歲以上",
+        },
+      },
+      passive: {
+        title: "被動收入覆蓋",
+        description:
+          "以現有投資資產假設 4% 年化股息率，計算每月能產生多少被動收入，並衡量可覆蓋退休後月支出的比例。",
+        steps: [
+          { label: "投資資產", value: `NT$ ${fmtWan(totalInvestment)}` },
+          { label: "× 4% 股息假設 ÷ 12" },
+          {
+            label: "月被動收入",
+            value: `NT$ ${fmtWan(Math.round(calcs.monthlyPassive))}`,
+          },
+          {
+            label: "退休後月支出（通膨後）",
+            value: `NT$ ${fmtWan(Math.round(calcs.fme))}`,
+          },
+        ],
+        result: {
+          label: "被動收入覆蓋率",
+          value: `${calcs.passiveCoverage.toFixed(1)}%`,
+        },
+      },
+      goal: {
+        title: "目標達成率",
+        description: "現有淨資產佔退休目標總額的百分比，反映目前距離退休目標的累積進度。",
+        steps: [
+          { label: "現有淨資產", value: `NT$ ${fmtWan(netAssets)}` },
+          { label: "退休目標總額", value: `NT$ ${fmtWan(Math.round(calcs.tt))}` },
+        ],
+        result: {
+          label: "目標達成率",
+          value: `${calcs.goalPct.toFixed(1)}%`,
+        },
+      },
+    }),
+    [calcs, params, netAssets, totalInvestment]
+  );
+
   // Derived colors
   const goalColor = calcs.goalPct >= 70 ? "#34c759" : calcs.goalPct >= 30 ? "#ff9500" : "#ff3b30";
   const fiColor =
@@ -374,6 +550,7 @@ export function RetirementPage() {
           value={`${fmtWan(calcs.tt)} 元`}
           sub={`${params.swr}% SWR 法則`}
           icon={Target}
+          onClick={() => setOpenModal("target")}
         />
         <MetricCard
           label="退休缺口"
@@ -381,6 +558,7 @@ export function RetirementPage() {
           sub={calcs.gap === 0 ? "恭喜達成！" : "尚需累積"}
           color={calcs.gap === 0 ? "#34c759" : "#ff3b30"}
           icon={AlertTriangle}
+          onClick={() => setOpenModal("gap")}
         />
         <MetricCard
           label="財務自由預測"
@@ -390,6 +568,7 @@ export function RetirementPage() {
           }
           color={fiColor}
           icon={Calendar}
+          onClick={() => setOpenModal("fi")}
         />
         <MetricCard
           label="被動收入覆蓋"
@@ -397,11 +576,24 @@ export function RetirementPage() {
           sub={`月 ${fmtWan(calcs.monthlyPassive)} 元`}
           color={coverageColor}
           icon={TrendingUp}
+          onClick={() => setOpenModal("passive")}
         />
       </div>
 
       {/* Goal progress bar */}
-      <div className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+      <div
+        data-testid="goal-progress-section"
+        className="cursor-pointer rounded-2xl bg-white px-4 py-4 shadow-sm transition-shadow hover:shadow-md"
+        onClick={() => setOpenModal("goal")}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpenModal("goal");
+          }
+        }}
+        tabIndex={0}
+        role="button"
+      >
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[15px] font-semibold text-[#1c1c1e]">目標達成率</p>
           <p className="text-[17px] font-bold" style={{ color: goalColor }}>
@@ -919,6 +1111,10 @@ export function RetirementPage() {
           </div>
         )}
       </div>
+
+      {openModal && modalContents[openModal] && (
+        <InfoModal content={modalContents[openModal]} onClose={() => setOpenModal(null)} />
+      )}
     </div>
   );
 }

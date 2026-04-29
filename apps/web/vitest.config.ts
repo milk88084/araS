@@ -8,7 +8,11 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     passWithNoTests: true,
-    include: ["src/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
+    include: [
+      "src/**/*.test.{ts,tsx}",
+      "tests/**/*.test.{ts,tsx}",
+      "components/**/*.test.{ts,tsx}",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
