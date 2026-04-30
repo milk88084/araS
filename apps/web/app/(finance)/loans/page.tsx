@@ -7,6 +7,8 @@ import { LoanFormFields, type LoanFormValues } from "../../../components/finance
 import { CATEGORIES } from "../../../components/finance/categoryConfig";
 import type { Entry } from "@repo/shared";
 
+const LOAN_SUBCATEGORIES = ["房屋貸款", "汽車貸款", "消費貸款", "學生貸款", "其他貸款"];
+
 function toLoanFormValues(entry: Entry): LoanFormValues {
   const l = entry.loan!;
   return {
@@ -32,12 +34,14 @@ export default function LoansPage() {
     fetchAll();
   }, [fetchAll]);
 
-  const loanEntries = entries.filter((e) => e.loan != null);
+  const loanEntries = entries.filter(
+    (e) => e.loan != null || LOAN_SUBCATEGORIES.includes(e.subCategory)
+  );
 
   useEffect(() => {
     const initial: Record<string, LoanFormValues> = {};
     for (const e of loanEntries) {
-      if (!formValues[e.id]) {
+      if (!formValues[e.id] && e.loan != null) {
         initial[e.id] = toLoanFormValues(e);
       }
     }
@@ -75,17 +79,26 @@ export default function LoansPage() {
         {loanEntries.map((entry) => {
           const color = getLoanColor(entry.topCategory);
           const values = formValues[entry.id];
-          if (!values) return null;
           return (
             <div key={entry.id} className="overflow-hidden rounded-2xl bg-white shadow-sm">
               <div className="px-5 pt-4 pb-2">
                 <p className="text-[15px] font-semibold text-[#1c1c1e]">{entry.name}</p>
+                <p className="text-[12px] text-[#8e8e93]">{entry.subCategory}</p>
               </div>
-              <LoanFormFields
-                values={values}
-                color={color}
-                onChange={(v) => setFormValues((prev) => ({ ...prev, [entry.id]: v }))}
-              />
+              {values ? (
+                <LoanFormFields
+                  values={values}
+                  color={color}
+                  onChange={(v) => setFormValues((prev) => ({ ...prev, [entry.id]: v }))}
+                />
+              ) : (
+                <div className="px-5 py-4">
+                  <p className="text-[12px] text-[#8e8e93]">餘額</p>
+                  <p className="text-[20px] font-bold text-[#1c1c1e]">
+                    {entry.value.toLocaleString()}
+                  </p>
+                </div>
+              )}
             </div>
           );
         })}

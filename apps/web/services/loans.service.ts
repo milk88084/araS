@@ -83,6 +83,42 @@ export class LoansService {
     return loan;
   }
 
+  async syncBalance(
+    loan: {
+      id: string;
+      entryId: string;
+      totalAmount: number;
+      annualInterestRate: number;
+      termMonths: number;
+      startDate: Date;
+      gracePeriodMonths: number;
+      repaymentType: "principal_interest" | "principal_equal";
+    },
+    manualBalance?: number
+  ) {
+    const newBalance =
+      manualBalance !== undefined
+        ? manualBalance
+        : calculateLoanStatus(
+            {
+              totalAmount: loan.totalAmount,
+              annualInterestRate: loan.annualInterestRate,
+              termMonths: loan.termMonths,
+              startDate: loan.startDate,
+              gracePeriodMonths: loan.gracePeriodMonths,
+              repaymentType: loan.repaymentType,
+            },
+            new Date()
+          ).remainingPrincipal;
+
+    await prisma.entry.update({
+      where: { id: loan.entryId },
+      data: { value: newBalance },
+    });
+
+    return { loan, entryValue: newBalance };
+  }
+
   async deleteByEntryId(entryId: string) {
     return prisma.entry.delete({ where: { id: entryId } });
   }

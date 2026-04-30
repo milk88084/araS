@@ -44,7 +44,7 @@ export function AddAccountPage({ open, onClose, onSelectCategory }: Props) {
       setExpandedCategory(null);
     } else {
       // Root → close
-      onClose();
+      handleClose();
     }
   };
 
@@ -95,12 +95,6 @@ export function AddAccountPage({ open, onClose, onSelectCategory }: Props) {
           <h1 className="flex-1 text-center text-[20px] font-bold text-[#1c1c1e]">
             {drillTarget ? drillTarget.title : "新增帳戶"}
           </h1>
-          <button
-            onClick={handleClose}
-            className="w-10 text-right text-[15px] font-medium text-[#007aff]"
-          >
-            取消
-          </button>
         </div>
       </div>
 

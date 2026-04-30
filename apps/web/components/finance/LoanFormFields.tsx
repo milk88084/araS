@@ -16,9 +16,10 @@ interface Props {
   values: LoanFormValues;
   color: string;
   onChange: (values: LoanFormValues) => void;
+  errors?: Partial<Record<keyof LoanFormValues, string>>;
 }
 
-export function LoanFormFields({ values, color, onChange }: Props) {
+export function LoanFormFields({ values, color, onChange, errors }: Props) {
   const set = (key: keyof LoanFormValues) => (val: string) => onChange({ ...values, [key]: val });
 
   return (
@@ -45,6 +46,9 @@ export function LoanFormFields({ values, color, onChange }: Props) {
           placeholder="0"
           className="w-full bg-transparent text-[20px] font-bold text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
         />
+        {errors?.totalAmount && (
+          <p className="mt-1 text-[12px] text-[#ff3b30]">{errors.totalAmount}</p>
+        )}
       </div>
 
       {/* Rate + term (split row) */}
@@ -59,6 +63,9 @@ export function LoanFormFields({ values, color, onChange }: Props) {
             step="0.01"
             className="w-full bg-transparent text-[17px] font-semibold text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
           />
+          {errors?.annualInterestRate && (
+            <p className="mt-1 text-[12px] text-[#ff3b30]">{errors.annualInterestRate}</p>
+          )}
         </div>
         <div className="w-1/2 px-5 py-4">
           <p className="mb-1 text-[12px] text-[#8e8e93]">貸款期數 (月)</p>
@@ -69,6 +76,9 @@ export function LoanFormFields({ values, color, onChange }: Props) {
             placeholder="360"
             className="w-full bg-transparent text-[17px] font-semibold text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
           />
+          {errors?.termMonths && (
+            <p className="mt-1 text-[12px] text-[#ff3b30]">{errors.termMonths}</p>
+          )}
         </div>
       </div>
 
@@ -82,6 +92,9 @@ export function LoanFormFields({ values, color, onChange }: Props) {
             onChange={(e) => set("startDate")(e.target.value)}
             className="w-full bg-transparent text-[15px] font-semibold text-[#1c1c1e] outline-none"
           />
+          {errors?.startDate && (
+            <p className="mt-1 text-[12px] text-[#ff3b30]">{errors.startDate}</p>
+          )}
         </div>
         <div className="w-1/2 px-5 py-4">
           <p className="mb-1 text-[12px] text-[#8e8e93]">寬限期 (月)</p>

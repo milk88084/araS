@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, BarChart3, Shield, Landmark, Loader2 } from "lucide-react";
+import { Building2, BarChart3, Shield, Landmark, Loader2, PiggyBank } from "lucide-react";
 
 const tabs = [
   { href: "/assets", icon: Building2, label: "資產" },
   { href: "/transactions", icon: BarChart3, label: "收支" },
   { href: "/loans", icon: Landmark, label: "貸款" },
   { href: "/insurance", icon: Shield, label: "保險" },
+  { href: "/retirement", icon: PiggyBank, label: "退休金" },
 ];
 
 export function BottomNav() {
