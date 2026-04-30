@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { ChevronLeft } from "lucide-react";
 import type { Loan } from "@repo/shared";
 import { generateAmortizationSchedule, calculateLoanStatus } from "@repo/shared";
@@ -13,6 +13,7 @@ interface Props {
   color: string;
   onClose: () => void;
   onRateUpdated: () => void;
+  onSynced?: () => void;
 }
 
 function formatDateStr(iso: string): string {
@@ -20,7 +21,7 @@ function formatDateStr(iso: string): string {
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function LoanDetailSheet({ open, loan, color, onClose, onRateUpdated }: Props) {
+export function LoanDetailSheet({ open, loan, color, onClose, onRateUpdated, onSynced }: Props) {
   const [rateInput, setRateInput] = useState(String(loan.annualInterestRate));
   const [editingRate, setEditingRate] = useState(false);
   const [savingRate, setSavingRate] = useState(false);
@@ -32,6 +33,7 @@ export function LoanDetailSheet({ open, loan, color, onClose, onRateUpdated }: P
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const today = useMemo(() => new Date(), []);
 
@@ -53,6 +55,12 @@ export function LoanDetailSheet({ open, loan, color, onClose, onRateUpdated }: P
   );
 
   const status = useMemo(() => calculateLoanStatus(loanInput, today), [loanInput, today]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   const manualBalanceNum = parseFloat(manualBalance);
   const manualBalanceValid =
@@ -89,18 +97,24 @@ export function LoanDetailSheet({ open, loan, color, onClose, onRateUpdated }: P
     setSyncing(true);
     setSyncError(null);
     try {
+      const hasBody = balance !== undefined;
       const res = await fetch(`/api/loans/${loan.id}/sync`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        ...(balance !== undefined ? { body: JSON.stringify({ manualBalance: balance }) } : {}),
+        ...(hasBody
+          ? {
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ manualBalance: balance }),
+            }
+          : {}),
       });
       if (!res.ok) throw new Error();
       setShowSyncSheet(false);
       setSyncMode("auto");
       setManualBalance("");
       setShowToast(true);
-      setTimeout(() => setShowToast(false), 2000);
-      onRateUpdated();
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setShowToast(false), 2000);
+      (onSynced ?? onRateUpdated)();
     } catch {
       setSyncError("同步失敗，請稍後再試");
     } finally {
