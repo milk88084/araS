@@ -83,10 +83,19 @@ export class LoansService {
     return loan;
   }
 
-  async syncBalance(id: string, manualBalance?: number) {
-    const loan = await prisma.loan.findUnique({ where: { id } });
-    if (!loan) return null;
-
+  async syncBalance(
+    loan: {
+      id: string;
+      entryId: string;
+      totalAmount: number;
+      annualInterestRate: number;
+      termMonths: number;
+      startDate: Date;
+      gracePeriodMonths: number;
+      repaymentType: "principal_interest" | "principal_equal";
+    },
+    manualBalance?: number
+  ) {
     const newBalance =
       manualBalance !== undefined
         ? manualBalance
