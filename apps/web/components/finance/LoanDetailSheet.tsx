@@ -352,6 +352,7 @@ export function LoanDetailSheet({ open, loan, color, onClose, onRateUpdated, onS
                     onClick={() => {
                       setSyncMode("auto");
                       setManualBalance("");
+                      setSyncError(null);
                     }}
                     className="w-full py-2 text-[13px] font-medium"
                     style={{ color }}

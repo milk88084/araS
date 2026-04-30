@@ -182,4 +182,24 @@ describe("LoanDetailSheet — payment sync", () => {
       expect(screen.getByText("同步失敗，請稍後再試")).toBeInTheDocument();
     });
   });
+
+  it("calls onSynced instead of onRateUpdated when onSynced is provided", async () => {
+    const onSynced = vi.fn();
+    render(
+      <LoanDetailSheet
+        open={true}
+        loan={MOCK_LOAN}
+        color="#C7C7D4"
+        onClose={onClose}
+        onRateUpdated={onRateUpdated}
+        onSynced={onSynced}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "我已繳款" }));
+    fireEvent.click(screen.getByRole("button", { name: "確認已繳" }));
+    await waitFor(() => {
+      expect(onSynced).toHaveBeenCalled();
+      expect(onRateUpdated).not.toHaveBeenCalled();
+    });
+  });
 });

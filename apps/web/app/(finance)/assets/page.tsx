@@ -352,6 +352,7 @@ export default function AssetsPage() {
             setLoanDetailData(null);
           }}
           onRateUpdated={fetchAll}
+          onSynced={fetchAll}
         />
       )}
 
