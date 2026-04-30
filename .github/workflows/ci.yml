@@ -27,6 +27,11 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-lint-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-lint-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo run lint
 
@@ -40,6 +45,15 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-type-check-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-type-check-${{ runner.os }}-
+      - uses: actions/cache@v4
+        with:
+          path: apps/web/node_modules/.prisma
+          key: prisma-${{ runner.os }}-${{ hashFiles('apps/web/prisma/schema.prisma') }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
       - run: pnpm turbo run type-check
@@ -54,6 +68,15 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-test-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-test-${{ runner.os }}-
+      - uses: actions/cache@v4
+        with:
+          path: apps/web/node_modules/.prisma
+          key: prisma-${{ runner.os }}-${{ hashFiles('apps/web/prisma/schema.prisma') }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
       - run: pnpm turbo run test
@@ -69,6 +92,15 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-build-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-build-${{ runner.os }}-
+      - uses: actions/cache@v4
+        with:
+          path: apps/web/node_modules/.prisma
+          key: prisma-${{ runner.os }}-${{ hashFiles('apps/web/prisma/schema.prisma') }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:generate
       - run: pnpm turbo run build
