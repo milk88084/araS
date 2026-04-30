@@ -83,6 +83,33 @@ export class LoansService {
     return loan;
   }
 
+  async syncBalance(id: string, manualBalance?: number) {
+    const loan = await prisma.loan.findUnique({ where: { id } });
+    if (!loan) return null;
+
+    const newBalance =
+      manualBalance !== undefined
+        ? manualBalance
+        : calculateLoanStatus(
+            {
+              totalAmount: loan.totalAmount,
+              annualInterestRate: loan.annualInterestRate,
+              termMonths: loan.termMonths,
+              startDate: loan.startDate,
+              gracePeriodMonths: loan.gracePeriodMonths,
+              repaymentType: loan.repaymentType,
+            },
+            new Date()
+          ).remainingPrincipal;
+
+    await prisma.entry.update({
+      where: { id: loan.entryId },
+      data: { value: newBalance },
+    });
+
+    return { loan, entryValue: newBalance };
+  }
+
   async deleteByEntryId(entryId: string) {
     return prisma.entry.delete({ where: { id: entryId } });
   }
