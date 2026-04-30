@@ -71,6 +71,7 @@ export function EntryDetailPage({
   const [editDelta, setEditDelta] = useState("");
   const [editUnits, setEditUnits] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isStockEntry =
@@ -157,11 +158,21 @@ export function EntryDetailPage({
     setEditDate(h.createdAt.split("T")[0] ?? "");
     setEditDelta(String(h.delta));
     setEditUnits(h.units != null ? String(h.units) : "");
+    setEditError(null);
     setConfirmDelete(false);
   }
 
   async function handleSaveHistory() {
     if (!editingHistory || !entry) return;
+    if (!editDate) {
+      setEditError("請選擇日期");
+      return;
+    }
+    if (!editDelta || isNaN(parseFloat(editDelta))) {
+      setEditError("請輸入有效的變動金額");
+      return;
+    }
+    setEditError(null);
     setEditSaving(true);
     try {
       const body: Record<string, unknown> = {
@@ -489,6 +500,10 @@ export function EntryDetailPage({
                 </>
               )}
             </div>
+
+            {editError && (
+              <p className="mt-3 text-center text-[12px] text-[#ff3b30]">{editError}</p>
+            )}
 
             {/* Save / Cancel */}
             <div className="mt-4 flex gap-3">

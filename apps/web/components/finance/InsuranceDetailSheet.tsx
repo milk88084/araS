@@ -28,6 +28,7 @@ export function InsuranceDetailSheet({ open, insurance, color, onClose, onRateUp
   const [rateInput, setRateInput] = useState(String(insurance.declaredRate));
   const [editingRate, setEditingRate] = useState(false);
   const [savingRate, setSavingRate] = useState(false);
+  const [rateError, setRateError] = useState<string | null>(null);
 
   const today = useMemo(() => new Date(), []);
   const { rate } = useExchangeRate();
@@ -56,7 +57,11 @@ export function InsuranceDetailSheet({ open, insurance, color, onClose, onRateUp
 
   const handleSaveRate = async () => {
     const rate = parseFloat(rateInput);
-    if (isNaN(rate) || rate < 0 || rate > 20) return;
+    if (isNaN(rate) || rate < 0 || rate > 20) {
+      setRateError("請輸入有效的宣告利率（0 ~ 20%）");
+      return;
+    }
+    setRateError(null);
     setSavingRate(true);
     try {
       const res = await fetch(`/api/insurance/${insurance.id}/rate`, {
@@ -147,34 +152,41 @@ export function InsuranceDetailSheet({ open, insurance, color, onClose, onRateUp
           <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
             <p className="mb-1 text-[12px] text-[#8e8e93]">宣告利率 (%)</p>
             {editingRate ? (
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  value={rateInput}
-                  onChange={(e) => setRateInput(e.target.value)}
-                  step="0.01"
-                  min={0}
-                  max={20}
-                  className="flex-1 bg-transparent text-[20px] font-bold text-[#1c1c1e] outline-none"
-                  autoFocus
-                />
-                <button
-                  onClick={handleSaveRate}
-                  disabled={savingRate}
-                  className="rounded-xl px-3 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"
-                  style={{ backgroundColor: color }}
-                >
-                  {savingRate ? "更新中" : "確認"}
-                </button>
-                <button
-                  onClick={() => {
-                    setRateInput(String(insurance.declaredRate));
-                    setEditingRate(false);
-                  }}
-                  className="rounded-xl bg-[#f2f2f7] px-3 py-1.5 text-[13px] font-semibold text-[#8e8e93]"
-                >
-                  取消
-                </button>
+              <div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    value={rateInput}
+                    onChange={(e) => {
+                      setRateInput(e.target.value);
+                      setRateError(null);
+                    }}
+                    step="0.01"
+                    min={0}
+                    max={20}
+                    className="flex-1 bg-transparent text-[20px] font-bold text-[#1c1c1e] outline-none"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSaveRate}
+                    disabled={savingRate}
+                    className="rounded-xl px-3 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"
+                    style={{ backgroundColor: color }}
+                  >
+                    {savingRate ? "更新中" : "確認"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setRateInput(String(insurance.declaredRate));
+                      setRateError(null);
+                      setEditingRate(false);
+                    }}
+                    className="rounded-xl bg-[#f2f2f7] px-3 py-1.5 text-[13px] font-semibold text-[#8e8e93]"
+                  >
+                    取消
+                  </button>
+                </div>
+                {rateError && <p className="mt-1 text-[12px] text-[#ff3b30]">{rateError}</p>}
               </div>
             ) : (
               <div className="flex items-center justify-between">

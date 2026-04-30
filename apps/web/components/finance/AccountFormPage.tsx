@@ -119,6 +119,8 @@ export function AccountFormPage({
   const [note, setNote] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0] ?? "");
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [loanErrors, setLoanErrors] = useState<Partial<Record<keyof LoanFormValues, string>>>({});
   const [loanValues, setLoanValues] = useState<LoanFormValues>({
     loanName: "",
     totalAmount: "",
@@ -147,6 +149,8 @@ export function AccountFormPage({
   useEffect(() => {
     if (!open) return;
 
+    setFormError(null);
+    setLoanErrors({});
     setName(editItem?.name ?? nameSuggestion ?? "");
     setIncludeInChart(true);
     setNote("");
@@ -327,7 +331,39 @@ export function AccountFormPage({
       .finally(() => setPriceLoading(false));
   };
 
+  const validateLoan = (): boolean => {
+    const errs: Partial<Record<keyof LoanFormValues, string>> = {};
+    if (!loanValues.totalAmount || parseFloat(loanValues.totalAmount) <= 0)
+      errs.totalAmount = "請輸入貸款金額";
+    if (!loanValues.annualInterestRate || parseFloat(loanValues.annualInterestRate) < 0)
+      errs.annualInterestRate = "請輸入年利率";
+    if (!loanValues.termMonths || parseInt(loanValues.termMonths) <= 0)
+      errs.termMonths = "請輸入貸款期數";
+    if (!loanValues.startDate) errs.startDate = "請選擇撥款日期";
+    setLoanErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validateGeneral = (): boolean => {
+    if (isInvestment) {
+      if (!units || parseFloat(units) <= 0) {
+        setFormError(`請輸入${getUnitsLabel(subCategoryName)}`);
+        return false;
+      }
+    } else {
+      if (!balance || isNaN(parseFloat(balance))) {
+        setFormError("請輸入帳戶餘額");
+        return false;
+      }
+    }
+    setFormError(null);
+    return true;
+  };
+
   const handleSubmit = async () => {
+    if (isLoan && !validateLoan()) return;
+    if (!isLoan && !isInsurance && !validateGeneral()) return;
+    setFormError(null);
     setSubmitting(true);
     try {
       if (isLoan) {
@@ -449,7 +485,15 @@ export function AccountFormPage({
             {isInsurance ? (
               <InsuranceFormFields values={insuranceValues} onChange={setInsuranceValues} />
             ) : isLoan ? (
-              <LoanFormFields values={loanValues} color={categoryColor} onChange={setLoanValues} />
+              <LoanFormFields
+                values={loanValues}
+                color={categoryColor}
+                onChange={(v) => {
+                  setLoanValues(v);
+                  setLoanErrors({});
+                }}
+                errors={loanErrors}
+              />
             ) : isInvestment ? (
               <>
                 {/* Stock selector row */}
@@ -536,7 +580,10 @@ export function AccountFormPage({
                       <input
                         type="number"
                         value={units}
-                        onChange={(e) => setUnits(e.target.value)}
+                        onChange={(e) => {
+                          setUnits(e.target.value);
+                          setFormError(null);
+                        }}
                         placeholder="0"
                         className="w-full bg-transparent text-[20px] font-semibold text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
                       />
@@ -552,7 +599,10 @@ export function AccountFormPage({
                       <input
                         type="number"
                         value={units}
-                        onChange={(e) => setUnits(e.target.value)}
+                        onChange={(e) => {
+                          setUnits(e.target.value);
+                          setFormError(null);
+                        }}
                         placeholder="0"
                         className="w-24 bg-transparent text-right text-[20px] font-semibold text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
                       />
@@ -586,7 +636,10 @@ export function AccountFormPage({
                   <input
                     type="number"
                     value={balance}
-                    onChange={(e) => setBalance(e.target.value)}
+                    onChange={(e) => {
+                      setBalance(e.target.value);
+                      setFormError(null);
+                    }}
                     placeholder="0"
                     className="w-24 bg-transparent text-right text-[20px] font-semibold text-[#1c1c1e] outline-none placeholder:text-[#c7c7cc]"
                   />
@@ -660,6 +713,8 @@ export function AccountFormPage({
               />
             </div>
           </div>
+
+          {formError && <p className="mt-3 text-center text-[13px] text-[#ff3b30]">{formError}</p>}
 
           {/* Recurrences section */}
           <div className="mt-6 flex items-center justify-between">
