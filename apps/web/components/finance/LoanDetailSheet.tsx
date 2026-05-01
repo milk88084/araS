@@ -14,6 +14,7 @@ interface Props {
   onClose: () => void;
   onRateUpdated: () => void;
   onSynced?: () => void;
+  onDeleted?: () => void;
 }
 
 function formatDateStr(iso: string): string {
@@ -21,11 +22,22 @@ function formatDateStr(iso: string): string {
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function LoanDetailSheet({ open, loan, color, onClose, onRateUpdated, onSynced }: Props) {
+export function LoanDetailSheet({
+  open,
+  loan,
+  color,
+  onClose,
+  onRateUpdated,
+  onSynced,
+  onDeleted,
+}: Props) {
   const [rateInput, setRateInput] = useState(String(loan.annualInterestRate));
   const [editingRate, setEditingRate] = useState(false);
   const [savingRate, setSavingRate] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [showSyncSheet, setShowSyncSheet] = useState(false);
   const [syncMode, setSyncMode] = useState<"auto" | "manual">("auto");
@@ -119,6 +131,20 @@ export function LoanDetailSheet({ open, loan, color, onClose, onRateUpdated, onS
       setSyncError("同步失敗，請稍後再試");
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/loans/${loan.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      onDeleted?.();
+      onClose();
+    } catch {
+      setConfirmDelete(false);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -266,6 +292,37 @@ export function LoanDetailSheet({ open, loan, color, onClose, onRateUpdated, onS
               <p className="mb-2 text-[15px] font-semibold text-[#1c1c1e]">還款明細</p>
               <AmortizationTable rows={schedule} color={color} />
             </div>
+
+            {/* Delete */}
+            {!confirmDelete ? (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="w-full rounded-2xl border border-[#ff3b30] py-3 text-[15px] font-semibold text-[#ff3b30]"
+              >
+                刪除貸款
+              </button>
+            ) : (
+              <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+                <p className="px-4 pt-4 text-center text-[14px] text-[#1c1c1e]">
+                  確定要刪除此貸款？此操作無法復原。
+                </p>
+                <div className="mt-4 flex divide-x divide-[#e5e5ea] border-t border-[#e5e5ea]">
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="flex-1 py-3 text-[15px] font-semibold text-[#8e8e93]"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="flex-1 py-3 text-[15px] font-semibold text-[#ff3b30] disabled:opacity-50"
+                  >
+                    {deleting ? "刪除中..." : "確認刪除"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

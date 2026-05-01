@@ -23,7 +23,6 @@ import { LoanDetailSheet } from "../../../components/finance/LoanDetailSheet";
 import { InsuranceDetailSheet } from "../../../components/finance/InsuranceDetailSheet";
 import { useExchangeRate } from "../../../hooks/useExchangeRate";
 import { calculateLoanStatus } from "@repo/shared";
-import type { Loan } from "@repo/shared";
 import type { Insurance } from "@repo/shared";
 
 const STOCK_CATEGORIES = ["台股", "美股", "加密貨幣", "貴金屬"];
@@ -66,7 +65,13 @@ export default function AssetsPage() {
   const [editItem, setEditItem] = useState<EditItem | null>(null);
   const [hideBalance, setHideBalance] = useState(false);
   const [showLoanDetail, setShowLoanDetail] = useState(false);
-  const [loanDetailData, setLoanDetailData] = useState<{ loan: Loan; color: string } | null>(null);
+  const [loanDetailLoanId, setLoanDetailLoanId] = useState<string | null>(null);
+  const [loanDetailColor, setLoanDetailColor] = useState("#C7C7D4");
+  const loanDetailEntry =
+    loanDetailLoanId != null ? entries.find((e) => e.loan?.id === loanDetailLoanId) : null;
+  const loanDetailData = loanDetailEntry?.loan
+    ? { loan: loanDetailEntry.loan, color: loanDetailColor }
+    : null;
   const [showInsuranceDetail, setShowInsuranceDetail] = useState(false);
   const [insuranceDetailData, setInsuranceDetailData] = useState<{
     insurance: Insurance;
@@ -138,7 +143,8 @@ export default function AssetsPage() {
 
     if (entry.loan) {
       const topCat = getTopCategory(entry.topCategory);
-      setLoanDetailData({ loan: entry.loan, color: topCat?.color ?? "#C7C7D4" });
+      setLoanDetailLoanId(entry.loan.id);
+      setLoanDetailColor(topCat?.color ?? "#C7C7D4");
       setShowLoanDetail(true);
       return;
     } else if (entry.insurance) {
@@ -349,10 +355,11 @@ export default function AssetsPage() {
           color={loanDetailData.color}
           onClose={() => {
             setShowLoanDetail(false);
-            setLoanDetailData(null);
+            setLoanDetailLoanId(null);
           }}
           onRateUpdated={fetchAll}
           onSynced={fetchAll}
+          onDeleted={fetchAll}
         />
       )}
 

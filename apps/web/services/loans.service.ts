@@ -93,6 +93,7 @@ export class LoansService {
       startDate: Date;
       gracePeriodMonths: number;
       repaymentType: "principal_interest" | "principal_equal";
+      entry: { value: number };
     },
     manualBalance?: number
   ) {
@@ -111,9 +112,21 @@ export class LoansService {
             new Date()
           ).remainingPrincipal;
 
-    await prisma.entry.update({
-      where: { id: loan.entryId },
-      data: { value: newBalance },
+    const delta = newBalance - loan.entry.value;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.entry.update({
+        where: { id: loan.entryId },
+        data: { value: newBalance },
+      });
+      await tx.entryHistory.create({
+        data: {
+          entryId: loan.entryId,
+          delta,
+          balance: newBalance,
+          note: "繳款同步",
+        },
+      });
     });
 
     return { loan, entryValue: newBalance };
