@@ -78,6 +78,10 @@ export default function InsurancePage() {
           open={selectedDetail !== null}
           insurance={selectedDetail}
           onClose={() => setSelectedDetail(null)}
+          onRateUpdated={() => {
+            setSelectedDetail(null);
+            fetchPolicies();
+          }}
         />
       )}
     </div>

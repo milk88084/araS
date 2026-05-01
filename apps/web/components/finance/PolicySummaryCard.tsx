@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { Insurance } from "@repo/shared";
-import { getNetAssetValue, getCostBasis } from "@repo/shared";
+import { getCostBasis } from "@repo/shared";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 
 type PolicyWithEntry = Insurance & { entry?: { name: string } | null };
@@ -14,7 +14,7 @@ interface Props {
 }
 
 function formatUSD(v: number) {
-  return `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `$${v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 function formatTWD(v: number) {
@@ -32,15 +32,15 @@ export function PolicySummaryCard({ insurance, onUpdate, onViewDetail }: Props) 
     [insurance.startDate]
   );
 
-  const { usd: navUsd, twd: navTwd } = useMemo(
-    () => getNetAssetValue(insurance, rate),
-    [insurance, rate]
-  );
-
   const { costBasis, unrealizedGain, returnPct } = useMemo(
     () => getCostBasis(insurance),
     [insurance]
   );
+
+  const tenYearValue = useMemo(() => {
+    const r = insurance.declaredRate / 100;
+    return insurance.surrenderValue * Math.pow(1 + r, 10);
+  }, [insurance.surrenderValue, insurance.declaredRate]);
 
   return (
     <div className="rounded-2xl bg-white px-4 py-5 shadow-sm">
@@ -64,19 +64,30 @@ export function PolicySummaryCard({ insurance, onUpdate, onViewDetail }: Props) 
         </div>
       </div>
 
-      {/* Net Asset Value */}
+      {/* 現在可領回 */}
       <div className="mt-3">
-        <p className="text-[11px] text-[#8e8e93]">解約金 + 增值回饋</p>
-        <p className="mt-0.5 text-[28px] font-bold text-[#1c1c1e]">{formatUSD(navUsd)}</p>
-        <p className="text-[12px] text-[#8e8e93]">≈ {formatTWD(navTwd)}</p>
+        <p className="text-[11px] text-[#8e8e93]">現在可領回</p>
+        <p className="mt-0.5 text-[28px] font-bold text-[#1c1c1e]">
+          {formatUSD(insurance.surrenderValue)}
+        </p>
+        <p className="text-[12px] text-[#8e8e93]">≈ {formatTWD(insurance.surrenderValue * rate)}</p>
         <p className="mt-0.5 text-[10px] text-[#c7c7cc]">
           匯率 {rate.toFixed(2)} {isManual ? "(手動)" : "(即時)"}
         </p>
       </div>
 
+      {/* 10yr projection hint */}
+      <div className="mt-2 flex items-center gap-1.5 rounded-xl bg-[#f2f2f7] px-3 py-2">
+        <span className="text-[11px] text-[#8e8e93]">10 年後預估</span>
+        <span className="text-[13px] font-semibold text-[#34c759]">{formatUSD(tenYearValue)}</span>
+        <span className="ml-auto text-[10px] text-[#aeaeb2]">
+          @{insurance.declaredRate.toFixed(1)}%/年
+        </span>
+      </div>
+
       {/* Cost basis row */}
       {costBasis !== null && unrealizedGain !== null && returnPct !== null && (
-        <div className="mt-3 flex items-center justify-between rounded-xl bg-[#f2f2f7] px-3 py-2.5">
+        <div className="mt-2 flex items-center justify-between rounded-xl bg-[#f2f2f7] px-3 py-2.5">
           <div>
             <p className="text-[11px] text-[#8e8e93]">保費成本</p>
             <p className="mt-0.5 text-[14px] font-semibold text-[#1c1c1e]">
@@ -99,22 +110,6 @@ export function PolicySummaryCard({ insurance, onUpdate, onViewDetail }: Props) 
           </div>
         </div>
       )}
-
-      {/* Secondary metrics */}
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-xl bg-[#f2f2f7] px-3 py-2.5">
-          <p className="text-[10px] text-[#8e8e93]">累計增值回饋分享金</p>
-          <p className="mt-0.5 text-[13px] font-semibold text-[#1c1c1e]">
-            {formatUSD(insurance.accumulatedBonus)}
-          </p>
-        </div>
-        <div className="rounded-xl bg-[#f2f2f7] px-3 py-2.5">
-          <p className="text-[10px] text-[#8e8e93]">累計增加保險金額</p>
-          <p className="mt-0.5 text-[13px] font-semibold text-[#1c1c1e]">
-            {formatUSD(insurance.accumulatedSumIncrease)}
-          </p>
-        </div>
-      </div>
 
       {/* Actions */}
       <div className="mt-4 flex gap-2">

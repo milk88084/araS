@@ -7,6 +7,8 @@ export {
   getNetAssetValue,
   getCostBasis,
   getAccumulatedGrowth,
+  getMilestoneProjections,
   type ProjectionRow,
   type PolicyValues,
+  type MilestoneRow,
 } from "./utils/insuranceUtils";
