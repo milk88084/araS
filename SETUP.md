@@ -6,12 +6,13 @@ Clone this repo and have the full stack running in about 10 minutes.
 
 ## Prerequisites
 
-| Tool           | Version | Install                                        |
-| -------------- | ------- | ---------------------------------------------- |
-| Node.js        | ≥ 20    | https://nodejs.org                             |
-| pnpm           | ≥ 9     | `npm install -g pnpm`                          |
-| Docker Desktop | any     | https://www.docker.com/products/docker-desktop |
-| Git            | any     | https://git-scm.com                            |
+| Tool    | Version | Install               |
+| ------- | ------- | --------------------- |
+| Node.js | ≥ 20    | https://nodejs.org    |
+| pnpm    | ≥ 9     | `npm install -g pnpm` |
+| Git     | any     | https://git-scm.com   |
+
+> No Docker required — the database runs on Supabase (cloud).
 
 ---
 
@@ -19,7 +20,7 @@ Clone this repo and have the full stack running in about 10 minutes.
 
 ```bash
 git clone <repo-url>
-cd next-production-template
+cd araS
 git checkout dev
 pnpm install
 ```
@@ -34,55 +35,49 @@ Copy the example file:
 cp .env.example .env
 ```
 
-Open `.env`. The only values you **must** fill in to run the app are the **Clerk keys**.
+Open `.env` and fill in the following values:
 
-### Getting Clerk Keys (free)
+### Getting Supabase Credentials (required)
 
-1. Go to [https://clerk.com](https://clerk.com) and create a free account
-2. Create a new application (choose "Email" or "Google" sign-in)
-3. Go to **API Keys** in your Clerk dashboard
-4. Copy the two keys into your `.env`:
+1. Go to [https://supabase.com](https://supabase.com) and open the project
+2. Go to **Project Settings → Database → Connection string**
+3. Copy the two URLs into your `.env`:
 
 ```env
-CLERK_SECRET_KEY=<your-clerk-secret-key>                # "Secret key" from Clerk dashboard
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<your-publishable-key>  # "Publishable key" from Clerk dashboard
+# Use "Transaction" mode (port 6543) for DATABASE_URL
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true
+
+# Use "Session" mode (port 5432) for DIRECT_URL
+DIRECT_URL=postgresql://postgres.<project-ref>:<password>@aws-<region>.pooler.supabase.com:5432/postgres
 ```
 
-> **Skip Clerk entirely?** Leave the keys as the placeholder values from `.env.example`. The app will run without auth — all routes will be accessible without signing in.
+> Both URLs are needed — `DATABASE_URL` is used at runtime (via PgBouncer), `DIRECT_URL` is used by Prisma migrations.
 
 ### Other Variables (already set for local dev)
 
-| Variable              | Default value                                                       | Change?                              |
-| --------------------- | ------------------------------------------------------------------- | ------------------------------------ |
-| `DATABASE_URL`        | `postgresql://postgres:postgres@localhost:5434/production_template` | Only if you use a different database |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:3001`                                             | No                                   |
-| `CORS_ORIGIN`         | `http://localhost:5173,http://localhost:3000`                       | No                                   |
-| `PORT`                | `3001`                                                              | No                                   |
+| Variable              | Default value                                 | Change? |
+| --------------------- | --------------------------------------------- | ------- |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:3001`                       | No      |
+| `CORS_ORIGIN`         | `http://localhost:5173,http://localhost:3000` | No      |
+| `PORT`                | `3001`                                        | No      |
 
 ---
 
-## Step 3 — Start the Database
+## Step 3 — Initialize Prisma
 
 ```bash
-pnpm docker:up
+# Generate Prisma client from schema
+pnpm --filter @repo/web db:generate
+
+# Deploy all migrations to Supabase (creates all tables)
+pnpm --filter @repo/web db:migrate:deploy
 ```
 
-This starts a PostgreSQL 16 container on port **5434**.
-
-> Requires Docker Desktop to be running.
+> The database is shared on Supabase — all machines connect to the same instance. No seeding needed.
 
 ---
 
-## Step 4 — Initialize the Database
-
-```bash
-pnpm db:generate   # Generate Prisma client
-pnpm db:migrate    # Apply database migrations
-```
-
----
-
-## Step 5 — Start Development
+## Step 4 — Start Development
 
 ```bash
 pnpm dev
@@ -92,8 +87,6 @@ pnpm dev
 | ------- | --------------------- |
 | Web app | http://localhost:3000 |
 | API     | http://localhost:3001 |
-
-Open http://localhost:3000 — you should see the home page.
 
 ---
 
@@ -113,14 +106,11 @@ curl http://localhost:3000/api/health
 
 ## Common Issues
 
-**`pnpm docker:up` fails**
-→ Make sure Docker Desktop is running.
+**`pnpm --filter @repo/web db:migrate:deploy` fails**
+→ Check that `DATABASE_URL` and `DIRECT_URL` are correctly set in `.env`. Both must point to the same Supabase project.
 
-**`pnpm db:migrate` fails**
-→ Make sure `pnpm docker:up` ran first and the container is healthy.
-
-**Clerk sign-in doesn't work**
-→ Check that `CLERK_SECRET_KEY` and `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` are set correctly in `.env`. They must match the same Clerk application.
+**App starts but shows no data**
+→ Run `pnpm --filter @repo/web db:generate` then restart `pnpm dev`. If tables are missing, re-run `db:migrate:deploy`.
 
 **Port 3000 or 3001 already in use**
 → Stop the conflicting process or change the port in `apps/web/package.json` (`--port 3000`) and `apps/api/src/lib/env.ts` (`PORT`).
@@ -130,9 +120,9 @@ curl http://localhost:3000/api/health
 ## Useful Commands
 
 ```bash
-pnpm db:studio          # Open Prisma Studio (database GUI) at http://localhost:5555
-pnpm db:migrate         # Apply new migrations
-pnpm test               # Run all tests
-pnpm type-check         # TypeScript check
-pnpm lint               # Lint all packages
+pnpm --filter @repo/web db:studio      # Open Prisma Studio (database GUI) at http://localhost:5555
+pnpm --filter @repo/web db:migrate:deploy  # Apply new migrations to Supabase
+pnpm test                              # Run all tests
+pnpm type-check                        # TypeScript check
+pnpm lint                              # Lint all packages
 ```
