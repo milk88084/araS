@@ -391,7 +391,9 @@ export function AccountFormPage({
           body: JSON.stringify({
             name: finalName,
             declaredRate: insuranceValues.declaredRate,
-            premiumTotal: insuranceValues.premiumTotal,
+            ...(insuranceValues.premiumTotal > 0
+              ? { premiumTotal: insuranceValues.premiumTotal }
+              : {}),
             currentAge: insuranceValues.currentAge,
             startDate: new Date(insuranceValues.startDate).toISOString(),
             cashValueData: insuranceValues.cashValueData,

@@ -85,7 +85,7 @@ export const CreateInsuranceSchema = z.object({
   premiumTotal: z.number().positive("保費必須大於 0").optional(),
   currentAge: z.number().int().min(0).max(120),
   startDate: z.string(),
-  cashValueData: z.array(CashValueRowSchema).min(1, "請至少輸入一年的現金價值"),
+  cashValueData: z.array(CashValueRowSchema).default([]),
 });
 export type CreateInsurance = z.infer<typeof CreateInsuranceSchema>;
 

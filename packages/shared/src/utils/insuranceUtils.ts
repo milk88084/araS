@@ -101,3 +101,26 @@ export function getAccumulatedGrowth(policy: PolicyValues): {
     interestAccumulation: policy.accumulatedBonus,
   };
 }
+
+export type MilestoneRow = {
+  years: number;
+  label: string;
+  age: number;
+  value: number;
+  gainRatio: number;
+};
+
+export function getMilestoneProjections(
+  surrenderValue: number,
+  declaredRate: number,
+  currentAge: number
+): MilestoneRow[] {
+  const r = declaredRate / 100;
+  return [0, 10, 20, 30].map((years) => ({
+    years,
+    label: years === 0 ? "現在" : `${years}年後`,
+    age: currentAge + years,
+    value: surrenderValue * Math.pow(1 + r, years),
+    gainRatio: Math.pow(1 + r, years),
+  }));
+}
