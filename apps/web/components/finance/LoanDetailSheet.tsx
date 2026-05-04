@@ -10,6 +10,7 @@ import { formatCurrency } from "../../lib/format";
 interface Props {
   open: boolean;
   loan: Loan;
+  currentBalance?: number | undefined;
   color: string;
   onClose: () => void;
   onRateUpdated: () => void;
@@ -25,28 +26,13 @@ function formatDateStr(iso: string): string {
 export function LoanDetailSheet({
   open,
   loan,
+  currentBalance,
   color,
   onClose,
   onRateUpdated,
   onSynced,
   onDeleted,
 }: Props) {
-  const [rateInput, setRateInput] = useState(String(loan.annualInterestRate));
-  const [editingRate, setEditingRate] = useState(false);
-  const [savingRate, setSavingRate] = useState(false);
-  const [rateError, setRateError] = useState<string | null>(null);
-
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const [showSyncSheet, setShowSyncSheet] = useState(false);
-  const [syncMode, setSyncMode] = useState<"auto" | "manual">("auto");
-  const [manualBalance, setManualBalance] = useState("");
-  const [syncing, setSyncing] = useState(false);
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const today = useMemo(() => new Date(), []);
 
   const loanInput = useMemo(
@@ -61,18 +47,43 @@ export function LoanDetailSheet({
     [loan]
   );
 
-  const schedule = useMemo(
-    () => generateAmortizationSchedule(loanInput, today),
-    [loanInput, today]
-  );
-
   const status = useMemo(() => calculateLoanStatus(loanInput, today), [loanInput, today]);
+
+  const defaultBalance = Math.round(currentBalance ?? status.remainingPrincipal);
+  const defaultMonths = loan.overrideTermMonths ?? Math.max(0, loan.termMonths - status.paidMonths);
+
+  // Three manually editable fields
+  const [draftBalance, setDraftBalance] = useState(String(defaultBalance));
+  const [draftMonths, setDraftMonths] = useState(String(defaultMonths));
+  const [draftRate, setDraftRate] = useState(String(loan.annualInterestRate));
+
+  // Schedule is only populated after user clicks 計算
+  const [displaySchedule, setDisplaySchedule] = useState<ReturnType<
+    typeof generateAmortizationSchedule
+  > | null>(null);
+  const [calcError, setCalcError] = useState<string | null>(null);
+
+  // Sync sheet state
+  const [showSyncSheet, setShowSyncSheet] = useState(false);
+  const [syncMode, setSyncMode] = useState<"auto" | "manual">("auto");
+  const [manualBalance, setManualBalance] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
+
+  const parsedMonths = parseInt(draftMonths, 10);
+  const displayPaidMonths =
+    !isNaN(parsedMonths) && parsedMonths >= 0 ? loan.termMonths - parsedMonths : status.paidMonths;
 
   const manualBalanceNum = parseFloat(manualBalance);
   const manualBalanceValid =
@@ -81,43 +92,57 @@ export function LoanDetailSheet({
     manualBalanceNum >= 0 &&
     manualBalanceNum <= loan.totalAmount;
 
-  const handleSaveRate = async () => {
-    const rate = parseFloat(rateInput);
-    if (isNaN(rate) || rate < 0 || rate > 100) {
-      setRateError("請輸入有效的年利率（0 ~ 100%）");
+  const handleCalculate = () => {
+    const balance = parseFloat(draftBalance);
+    const months = parseInt(draftMonths, 10);
+    const rate = parseFloat(draftRate);
+
+    if (!isFinite(balance) || balance < 0) {
+      setCalcError("請輸入有效的剩餘本金");
       return;
     }
-    setRateError(null);
-    setSavingRate(true);
-    try {
-      const res = await fetch(`/api/loans/${loan.id}/rate`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annualInterestRate: rate }),
-      });
-      if (!res.ok) throw new Error("更新失敗");
-      setEditingRate(false);
-      onRateUpdated();
-    } catch {
-      // keep editing open on failure
-    } finally {
-      setSavingRate(false);
+    if (!isFinite(months) || months < 1) {
+      setCalcError("請輸入有效的剩餘期數（至少 1 期）");
+      return;
     }
+    if (!isFinite(rate) || rate < 0 || rate > 100) {
+      setCalcError("請輸入有效的年利率（0 ~ 100%）");
+      return;
+    }
+
+    setCalcError(null);
+    const computed = generateAmortizationSchedule(
+      {
+        totalAmount: balance,
+        annualInterestRate: rate,
+        termMonths: months,
+        startDate: today.toISOString(),
+        gracePeriodMonths: 0,
+        repaymentType: loan.repaymentType,
+      },
+      today
+    );
+    setDisplaySchedule(computed);
   };
+
+  const nextRow = displaySchedule?.find((row) => !row.isPast) ?? null;
 
   const handleSync = async (balance?: number) => {
     setSyncing(true);
     setSyncError(null);
     try {
-      const hasBody = balance !== undefined;
+      const parsedOverride = parseInt(draftMonths, 10);
+      const overrideTermMonths =
+        isFinite(parsedOverride) && parsedOverride > 0 ? parsedOverride : undefined;
+
+      const body: Record<string, unknown> = {};
+      if (balance !== undefined) body.manualBalance = balance;
+      if (overrideTermMonths !== undefined) body.overrideTermMonths = overrideTermMonths;
+
       const res = await fetch(`/api/loans/${loan.id}/sync`, {
         method: "PATCH",
-        ...(hasBody
-          ? {
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ manualBalance: balance }),
-            }
-          : {}),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error();
       setShowSyncSheet(false);
@@ -183,115 +208,107 @@ export function LoanDetailSheet({
         {/* Scrollable body */}
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto max-w-md space-y-3 px-4 pb-12">
-            {/* Status row */}
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: "剩餘本金", value: formatCurrency(status.remainingPrincipal) },
-                {
-                  label: "下期應繳",
-                  value: status.nextPaymentDate ? formatCurrency(status.nextPaymentAmount) : "—",
-                },
-                {
-                  label: "下期日期",
-                  value: status.nextPaymentDate
-                    ? formatDateStr(status.nextPaymentDate.toISOString())
-                    : "已還清",
-                },
-              ].map(({ label, value }) => (
-                <div key={label} className="rounded-2xl bg-white px-3 py-3 shadow-sm">
-                  <p className="text-[11px] text-[#8e8e93]">{label}</p>
-                  <p className="mt-1 text-[14px] font-bold text-[#1c1c1e]">{value}</p>
+            {/* Three editable input cards */}
+            <div className="space-y-2">
+              <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+                <p className="text-[12px] text-[#8e8e93]">剩餘本金</p>
+                <div className="flex items-baseline gap-1">
+                  <input
+                    type="number"
+                    value={draftBalance}
+                    onChange={(e) => {
+                      setDraftBalance(e.target.value);
+                      setDisplaySchedule(null);
+                    }}
+                    className="mt-1 min-w-0 flex-1 bg-transparent text-[22px] font-bold text-[#1c1c1e] outline-none"
+                    inputMode="numeric"
+                  />
+                  <span className="shrink-0 text-[14px] text-[#8e8e93]">元</span>
                 </div>
-              ))}
+              </div>
+
+              <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+                <p className="text-[12px] text-[#8e8e93]">剩餘期數</p>
+                <div className="flex items-baseline gap-1">
+                  <input
+                    type="number"
+                    value={draftMonths}
+                    onChange={(e) => {
+                      setDraftMonths(e.target.value);
+                      setDisplaySchedule(null);
+                    }}
+                    className="mt-1 min-w-0 flex-1 bg-transparent text-[22px] font-bold text-[#1c1c1e] outline-none"
+                    inputMode="numeric"
+                    min={1}
+                  />
+                  <span className="shrink-0 text-[14px] text-[#8e8e93]">期</span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+                <p className="text-[12px] text-[#8e8e93]">年利率</p>
+                <div className="flex items-baseline gap-1">
+                  <input
+                    type="number"
+                    value={draftRate}
+                    onChange={(e) => {
+                      setDraftRate(e.target.value);
+                      setDisplaySchedule(null);
+                    }}
+                    className="mt-1 min-w-0 flex-1 bg-transparent text-[22px] font-bold text-[#1c1c1e] outline-none"
+                    inputMode="decimal"
+                    step="0.01"
+                  />
+                  <span className="shrink-0 text-[14px] text-[#8e8e93]">%</span>
+                </div>
+              </div>
             </div>
 
             {/* Progress */}
             <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
               <div className="mb-1 flex justify-between text-[12px] text-[#8e8e93]">
-                <span>已繳 {status.paidMonths} 期</span>
+                <span>已繳 {Math.max(0, displayPaidMonths)} 期</span>
                 <span>共 {loan.termMonths} 期</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-[#f2f2f7]">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
-                    width: `${Math.min(100, (status.paidMonths / loan.termMonths) * 100)}%`,
+                    width: `${Math.min(100, Math.max(0, (displayPaidMonths / loan.termMonths) * 100))}%`,
                     backgroundColor: color,
                   }}
                 />
               </div>
             </div>
 
-            {/* 我已繳款 — hidden when fully repaid */}
+            {/* Calculate button */}
+            {calcError && <p className="text-center text-[12px] text-[#ff3b30]">{calcError}</p>}
+            <button
+              onClick={handleCalculate}
+              className="w-full rounded-2xl py-3 text-[15px] font-semibold text-white"
+              style={{ backgroundColor: color }}
+            >
+              計算
+            </button>
+
+            {/* Amortization table — only shown after 計算 */}
+            {displaySchedule && (
+              <div className="rounded-2xl bg-white px-4 py-4 shadow-sm">
+                <p className="mb-2 text-[15px] font-semibold text-[#1c1c1e]">還款明細</p>
+                <AmortizationTable rows={displaySchedule} color={color} />
+              </div>
+            )}
+
+            {/* 我已繳款 */}
             {status.nextPaymentDate && (
               <button
                 onClick={() => setShowSyncSheet(true)}
-                className="w-full rounded-2xl py-3 text-[15px] font-semibold text-white"
-                style={{ backgroundColor: color }}
+                className="w-full rounded-2xl border py-3 text-[15px] font-semibold"
+                style={{ borderColor: color, color }}
               >
                 我已繳款
               </button>
             )}
-
-            {/* Rate editor */}
-            <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <p className="mb-1 text-[12px] text-[#8e8e93]">年利率 (%)</p>
-              {editingRate ? (
-                <div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={rateInput}
-                      onChange={(e) => {
-                        setRateInput(e.target.value);
-                        setRateError(null);
-                      }}
-                      step="0.01"
-                      className="min-w-0 flex-1 bg-transparent text-[20px] font-bold text-[#1c1c1e] outline-none"
-                      autoFocus
-                    />
-                    <button
-                      onClick={() => {
-                        setRateInput(String(loan.annualInterestRate));
-                        setRateError(null);
-                        setEditingRate(false);
-                      }}
-                      className="shrink-0 rounded-xl bg-[#f2f2f7] px-3 py-1.5 text-[13px] font-semibold text-[#8e8e93]"
-                    >
-                      取消
-                    </button>
-                    <button
-                      onClick={handleSaveRate}
-                      disabled={savingRate}
-                      className="shrink-0 rounded-xl px-3 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"
-                      style={{ backgroundColor: color }}
-                    >
-                      {savingRate ? "更新中" : "確認"}
-                    </button>
-                  </div>
-                  {rateError && <p className="mt-1 text-[12px] text-[#ff3b30]">{rateError}</p>}
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <p className="text-[20px] font-bold text-[#1c1c1e]">
-                    {loan.annualInterestRate.toFixed(2)}%
-                  </p>
-                  <button
-                    onClick={() => setEditingRate(true)}
-                    className="text-[13px] font-medium"
-                    style={{ color }}
-                  >
-                    調整
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Amortization table */}
-            <div className="rounded-2xl bg-white px-4 py-4 shadow-sm">
-              <p className="mb-2 text-[15px] font-semibold text-[#1c1c1e]">還款明細</p>
-              <AmortizationTable rows={schedule} color={color} />
-            </div>
 
             {/* Delete */}
             {!confirmDelete ? (
@@ -345,7 +362,7 @@ export function LoanDetailSheet({
                     <div className="flex justify-between">
                       <p className="text-[12px] text-[#8e8e93]">本期應繳</p>
                       <p className="text-[15px] font-semibold text-[#1c1c1e]">
-                        {formatCurrency(status.nextPaymentAmount)}
+                        {formatCurrency(nextRow?.totalPayment ?? status.nextPaymentAmount)}
                       </p>
                     </div>
                     <div className="flex justify-between">

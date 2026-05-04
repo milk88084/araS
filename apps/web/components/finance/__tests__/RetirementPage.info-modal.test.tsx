@@ -14,10 +14,11 @@ vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
+const mockFetchAll = vi.fn();
 vi.mock("../../../store/useFinanceStore", () => ({
   useFinanceStore: () => ({
     entries: [],
-    fetchAll: vi.fn(),
+    fetchAll: mockFetchAll,
   }),
 }));
 

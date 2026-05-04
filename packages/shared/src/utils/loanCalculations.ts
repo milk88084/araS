@@ -20,6 +20,7 @@ export type ScheduleRow = {
 
 export type LoanStatus = {
   remainingPrincipal: number;
+  nextRemainingPrincipal: number;
   nextPaymentAmount: number;
   nextPaymentDate: Date | null;
   paidMonths: number;
@@ -108,6 +109,13 @@ export function calculateLoanStatus(loan: LoanInput, currentDate: Date): LoanSta
   const nextRow = futureRows[0] ?? null;
   const nextPaymentAmount = nextRow?.totalPayment ?? 0;
   const nextPaymentDate = nextRow?.paymentDate ?? null;
+  const nextRemainingPrincipal = nextRow?.endBalance ?? 0;
 
-  return { remainingPrincipal, nextPaymentAmount, nextPaymentDate, paidMonths };
+  return {
+    remainingPrincipal,
+    nextRemainingPrincipal,
+    nextPaymentAmount,
+    nextPaymentDate,
+    paidMonths,
+  };
 }

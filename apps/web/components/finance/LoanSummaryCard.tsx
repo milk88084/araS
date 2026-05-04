@@ -1,5 +1,4 @@
 import type { Entry } from "@repo/shared";
-import { calculateLoanStatus } from "@repo/shared";
 import { formatCurrency } from "../../lib/format";
 
 interface Props {
@@ -7,26 +6,11 @@ interface Props {
 }
 
 export function LoanSummaryCard({ loanEntries }: Props) {
-  const loans = loanEntries.filter((e) => e.loan != null).map((e) => e.loan!);
+  const loans = loanEntries.filter((e) => e.loan != null);
   if (loans.length === 0) return null;
 
-  const today = new Date();
-
-  const totalOriginal = loans.reduce((s, l) => s + l.totalAmount, 0);
-  const totalRemaining = loans.reduce((s, l) => {
-    const status = calculateLoanStatus(
-      {
-        totalAmount: l.totalAmount,
-        annualInterestRate: l.annualInterestRate,
-        termMonths: l.termMonths,
-        startDate: l.startDate,
-        gracePeriodMonths: l.gracePeriodMonths,
-        repaymentType: l.repaymentType,
-      },
-      today
-    );
-    return s + status.remainingPrincipal;
-  }, 0);
+  const totalOriginal = loans.reduce((s, e) => s + e.loan!.totalAmount, 0);
+  const totalRemaining = loans.reduce((s, e) => s + e.value, 0);
 
   const paidFraction = totalOriginal > 0 ? 1 - totalRemaining / totalOriginal : 0;
 

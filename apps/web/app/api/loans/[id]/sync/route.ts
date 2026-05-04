@@ -5,6 +5,7 @@ import { ok, err, handleError } from "@/lib/api-response";
 
 const SyncBodySchema = z.object({
   manualBalance: z.number().min(0).optional(),
+  overrideTermMonths: z.number().int().positive().optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -13,8 +14,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const existing = await loansService.findById(id);
     if (!existing) return err("NOT_FOUND", "Loan not found", 404);
     const body = await req.json().catch(() => ({}));
-    const { manualBalance } = SyncBodySchema.parse(body);
-    const result = await loansService.syncBalance(existing, manualBalance);
+    const { manualBalance, overrideTermMonths } = SyncBodySchema.parse(body);
+    const result = await loansService.syncBalance(existing, manualBalance, overrideTermMonths);
     return ok(result);
   } catch (e) {
     return handleError(e);
