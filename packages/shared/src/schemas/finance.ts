@@ -26,6 +26,7 @@ export const LoanSchema = z.object({
   startDate: z.string(),
   gracePeriodMonths: z.number(),
   repaymentType: RepaymentTypeSchema,
+  overrideTermMonths: z.number().int().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -47,6 +48,17 @@ export const UpdateLoanRateSchema = z.object({
   annualInterestRate: z.number().min(0).max(100),
 });
 export type UpdateLoanRate = z.infer<typeof UpdateLoanRateSchema>;
+
+export const UpdateLoanSchema = z.object({
+  loanName: z.string().min(1).optional(),
+  totalAmount: z.number().positive().optional(),
+  annualInterestRate: z.number().min(0).max(100).optional(),
+  termMonths: z.number().int().positive().optional(),
+  startDate: z.string().optional(),
+  gracePeriodMonths: z.number().int().min(0).optional(),
+  repaymentType: RepaymentTypeSchema.optional(),
+});
+export type UpdateLoan = z.infer<typeof UpdateLoanSchema>;
 
 // CashValueRow
 export const CashValueRowSchema = z.object({

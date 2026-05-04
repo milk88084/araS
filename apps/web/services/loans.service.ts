@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { CreateLoan, UpdateLoanRate } from "@repo/shared";
+import type { CreateLoan, UpdateLoan, UpdateLoanRate } from "@repo/shared";
 import { calculateLoanStatus } from "@repo/shared";
 
 export class LoansService {
@@ -57,6 +57,51 @@ export class LoansService {
     });
   }
 
+  async update(id: string, data: UpdateLoan) {
+    return prisma.$transaction(async (tx) => {
+      const loan = await tx.loan.update({
+        where: { id },
+        data: {
+          ...(data.loanName !== undefined && { loanName: data.loanName }),
+          ...(data.annualInterestRate !== undefined && {
+            annualInterestRate: data.annualInterestRate,
+          }),
+          ...(data.termMonths !== undefined && { termMonths: data.termMonths }),
+          ...(data.startDate !== undefined && { startDate: new Date(data.startDate) }),
+          ...(data.gracePeriodMonths !== undefined && {
+            gracePeriodMonths: data.gracePeriodMonths,
+          }),
+          ...(data.repaymentType !== undefined && { repaymentType: data.repaymentType }),
+        },
+        include: { entry: true },
+      });
+
+      const entryUpdates: { name?: string; value?: number } = {};
+      if (data.loanName !== undefined) entryUpdates.name = data.loanName;
+      if (data.totalAmount !== undefined) entryUpdates.value = data.totalAmount;
+
+      if (Object.keys(entryUpdates).length > 0) {
+        await tx.entry.update({
+          where: { id: loan.entryId },
+          data: entryUpdates,
+        });
+      }
+
+      if (data.totalAmount !== undefined && data.totalAmount !== loan.entry.value) {
+        await tx.entryHistory.create({
+          data: {
+            entryId: loan.entryId,
+            delta: data.totalAmount - loan.entry.value,
+            balance: data.totalAmount,
+            note: "手動調整餘額",
+          },
+        });
+      }
+
+      return loan;
+    });
+  }
+
   async updateRate(id: string, data: UpdateLoanRate) {
     const loan = await prisma.loan.update({
       where: { id },
@@ -78,7 +123,8 @@ export class LoansService {
       repaymentType: "principal_interest" | "principal_equal";
       entry: { value: number };
     },
-    manualBalance?: number
+    manualBalance?: number,
+    overrideTermMonths?: number
   ) {
     const newBalance =
       manualBalance !== undefined
@@ -110,6 +156,12 @@ export class LoansService {
           note: "繳款同步",
         },
       });
+      if (overrideTermMonths !== undefined) {
+        await tx.loan.update({
+          where: { id: loan.id },
+          data: { overrideTermMonths },
+        });
+      }
     });
 
     return { loan, entryValue: newBalance };
