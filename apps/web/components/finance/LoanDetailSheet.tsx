@@ -10,6 +10,7 @@ import { formatCurrency } from "../../lib/format";
 interface Props {
   open: boolean;
   loan: Loan;
+  currentBalance?: number | undefined;
   color: string;
   onClose: () => void;
   onRateUpdated: () => void;
@@ -25,6 +26,7 @@ function formatDateStr(iso: string): string {
 export function LoanDetailSheet({
   open,
   loan,
+  currentBalance,
   color,
   onClose,
   onRateUpdated,
@@ -67,6 +69,57 @@ export function LoanDetailSheet({
   );
 
   const status = useMemo(() => calculateLoanStatus(loanInput, today), [loanInput, today]);
+
+  // When currentBalance is provided, override isPast flags and derive status from balance.
+  // If currentBalance is lower than the scheduled balance at that point (extra principal payment),
+  // re-amortize the remaining schedule from currentBalance.
+  const effectiveSchedule = useMemo(() => {
+    if (currentBalance === undefined) return schedule;
+
+    const nextRowIndex = schedule.findIndex((row) => row.endBalance < currentBalance - 0.01);
+    const paidCount = nextRowIndex === -1 ? schedule.length : nextRowIndex;
+
+    const scheduledBalance =
+      paidCount === 0 ? loanInput.totalAmount : schedule[paidCount - 1].endBalance;
+    const hasExtraPayment = currentBalance < scheduledBalance - 0.01;
+
+    if (!hasExtraPayment) {
+      return schedule.map((row, i) => ({ ...row, isPast: i < paidCount || row.isPast }));
+    }
+
+    // Extra principal payment: re-amortize remaining months from currentBalance
+    const remainingMonths = loanInput.termMonths - paidCount;
+    const pastRows = schedule.slice(0, paidCount).map((row) => ({ ...row, isPast: true }));
+    if (remainingMonths <= 0) return pastRows;
+
+    const virtualStart = new Date(loanInput.startDate);
+    virtualStart.setMonth(virtualStart.getMonth() + paidCount);
+
+    const futureRows = generateAmortizationSchedule(
+      {
+        totalAmount: currentBalance,
+        annualInterestRate: loanInput.annualInterestRate,
+        termMonths: remainingMonths,
+        startDate: virtualStart.toISOString(),
+        gracePeriodMonths: 0,
+        repaymentType: loanInput.repaymentType,
+      },
+      today
+    ).map((row, i) => ({ ...row, month: paidCount + 1 + i }));
+
+    return [...pastRows, ...futureRows];
+  }, [schedule, currentBalance, loanInput, today]);
+
+  const effectiveStatus = useMemo(() => {
+    if (currentBalance === undefined) return status;
+    const nextRow = effectiveSchedule.find((row) => !row.isPast) ?? null;
+    return {
+      ...status,
+      nextPaymentAmount: nextRow?.totalPayment ?? 0,
+      nextPaymentDate: nextRow?.paymentDate ?? null,
+      paidMonths: effectiveSchedule.filter((row) => row.isPast).length,
+    };
+  }, [effectiveSchedule, status, currentBalance]);
 
   useEffect(() => {
     return () => {
@@ -186,15 +239,20 @@ export function LoanDetailSheet({
             {/* Status row */}
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: "剩餘本金", value: formatCurrency(status.remainingPrincipal) },
+                {
+                  label: "剩餘本金",
+                  value: formatCurrency(currentBalance ?? status.remainingPrincipal),
+                },
                 {
                   label: "下期應繳",
-                  value: status.nextPaymentDate ? formatCurrency(status.nextPaymentAmount) : "—",
+                  value: effectiveStatus.nextPaymentDate
+                    ? formatCurrency(effectiveStatus.nextPaymentAmount)
+                    : "—",
                 },
                 {
                   label: "下期日期",
-                  value: status.nextPaymentDate
-                    ? formatDateStr(status.nextPaymentDate.toISOString())
+                  value: effectiveStatus.nextPaymentDate
+                    ? formatDateStr(effectiveStatus.nextPaymentDate.toISOString())
                     : "已還清",
                 },
               ].map(({ label, value }) => (
@@ -208,14 +266,14 @@ export function LoanDetailSheet({
             {/* Progress */}
             <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
               <div className="mb-1 flex justify-between text-[12px] text-[#8e8e93]">
-                <span>已繳 {status.paidMonths} 期</span>
+                <span>已繳 {effectiveStatus.paidMonths} 期</span>
                 <span>共 {loan.termMonths} 期</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-[#f2f2f7]">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
-                    width: `${Math.min(100, (status.paidMonths / loan.termMonths) * 100)}%`,
+                    width: `${Math.min(100, (effectiveStatus.paidMonths / loan.termMonths) * 100)}%`,
                     backgroundColor: color,
                   }}
                 />
@@ -223,7 +281,7 @@ export function LoanDetailSheet({
             </div>
 
             {/* 我已繳款 — hidden when fully repaid */}
-            {status.nextPaymentDate && (
+            {effectiveStatus.nextPaymentDate && (
               <button
                 onClick={() => setShowSyncSheet(true)}
                 className="w-full rounded-2xl py-3 text-[15px] font-semibold text-white"
@@ -290,7 +348,7 @@ export function LoanDetailSheet({
             {/* Amortization table */}
             <div className="rounded-2xl bg-white px-4 py-4 shadow-sm">
               <p className="mb-2 text-[15px] font-semibold text-[#1c1c1e]">還款明細</p>
-              <AmortizationTable rows={schedule} color={color} />
+              <AmortizationTable rows={effectiveSchedule} color={color} />
             </div>
 
             {/* Delete */}
@@ -345,14 +403,14 @@ export function LoanDetailSheet({
                     <div className="flex justify-between">
                       <p className="text-[12px] text-[#8e8e93]">本期應繳</p>
                       <p className="text-[15px] font-semibold text-[#1c1c1e]">
-                        {formatCurrency(status.nextPaymentAmount)}
+                        {formatCurrency(effectiveStatus.nextPaymentAmount)}
                       </p>
                     </div>
                     <div className="flex justify-between">
                       <p className="text-[12px] text-[#8e8e93]">還款日</p>
                       <p className="text-[15px] text-[#1c1c1e]">
-                        {status.nextPaymentDate
-                          ? formatDateStr(status.nextPaymentDate.toISOString())
+                        {effectiveStatus.nextPaymentDate
+                          ? formatDateStr(effectiveStatus.nextPaymentDate.toISOString())
                           : "—"}
                       </p>
                     </div>

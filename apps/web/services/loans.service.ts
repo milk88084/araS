@@ -63,23 +63,6 @@ export class LoansService {
       data: { annualInterestRate: data.annualInterestRate },
     });
 
-    const status = calculateLoanStatus(
-      {
-        totalAmount: loan.totalAmount,
-        annualInterestRate: loan.annualInterestRate,
-        termMonths: loan.termMonths,
-        startDate: loan.startDate,
-        gracePeriodMonths: loan.gracePeriodMonths,
-        repaymentType: loan.repaymentType,
-      },
-      new Date()
-    );
-
-    await prisma.entry.update({
-      where: { id: loan.entryId },
-      data: { value: status.remainingPrincipal },
-    });
-
     return loan;
   }
 
@@ -110,7 +93,7 @@ export class LoansService {
               repaymentType: loan.repaymentType,
             },
             new Date()
-          ).remainingPrincipal;
+          ).nextRemainingPrincipal;
 
     const delta = newBalance - loan.entry.value;
 

@@ -352,6 +352,7 @@ export default function AssetsPage() {
         <LoanDetailSheet
           open={showLoanDetail}
           loan={loanDetailData.loan}
+          currentBalance={loanDetailEntry?.value}
           color={loanDetailData.color}
           onClose={() => {
             setShowLoanDetail(false);
