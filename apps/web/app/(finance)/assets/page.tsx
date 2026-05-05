@@ -235,7 +235,7 @@ export default function AssetsPage() {
 
       {/* Category list with proportion bar */}
       {categoriesWithData.length > 0 ? (
-        <div className="flex flex-col gap-3 pr-4 pb-8">
+        <div className="flex flex-col pr-4 pb-8">
           {categoriesWithData.map((cat) => {
             const isLiability = cat.isLiability;
             const items: CategoryItem[] = cat.catEntries.map((e) => {
@@ -284,7 +284,7 @@ export default function AssetsPage() {
                   className="w-12 shrink-0 rounded-r-2xl"
                   style={{ backgroundColor: cat.color }}
                 />
-                <div className="min-w-0 flex-1 overflow-hidden">
+                <div className="min-w-0 flex-1 overflow-hidden pb-3">
                   <FinanceCategoryCard
                     name={cat.name}
                     color={cat.color}

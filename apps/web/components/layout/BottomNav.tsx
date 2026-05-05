@@ -37,6 +37,7 @@ export function BottomNav() {
               key={href}
               onClick={() => navigate(href)}
               aria-label={label}
+              disabled={loading}
               className={`flex items-center justify-center rounded-full p-3 transition-colors ${
                 active ? "bg-black/8 text-black" : "text-[#c7c7cc] hover:text-[#8e8e93]"
               }`}
