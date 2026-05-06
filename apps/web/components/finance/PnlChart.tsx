@@ -13,7 +13,7 @@ export function PnlChart({
   height = 220,
 }: {
   data: LiquidityPoint[];
-  height?: number | string;
+  height?: number | `${number}%`;
 }) {
   return (
     <div

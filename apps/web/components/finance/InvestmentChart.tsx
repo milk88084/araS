@@ -13,7 +13,7 @@ export function InvestmentChart({
   height = 220,
 }: {
   data: InvestmentPoint[];
-  height?: number | string;
+  height?: number | `${number}%`;
 }) {
   return (
     <div
