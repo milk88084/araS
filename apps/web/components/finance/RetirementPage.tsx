@@ -149,14 +149,14 @@ function MetricCard({
 }: {
   label: string;
   value: string;
-  unit?: string;
-  sub?: string;
-  color?: string;
-  bg?: string;
-  labelColor?: string;
-  iconColor?: string;
+  unit?: string | undefined;
+  sub?: string | undefined;
+  color?: string | undefined;
+  bg?: string | undefined;
+  labelColor?: string | undefined;
+  iconColor?: string | undefined;
   icon: React.ElementType;
-  onClick?: () => void;
+  onClick?: (() => void) | undefined;
 }) {
   return (
     <div

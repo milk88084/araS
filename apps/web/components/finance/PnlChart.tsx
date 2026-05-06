@@ -8,10 +8,22 @@ function formatY(value: number): string {
   return `${value}`;
 }
 
-export function PnlChart({ data }: { data: LiquidityPoint[] }) {
+export function PnlChart({
+  data,
+  height = 220,
+}: {
+  data: LiquidityPoint[];
+  height?: number | string;
+}) {
   return (
-    <div style={{ borderRight: "2px solid #1c1c1e", borderBottom: "2px solid #1c1c1e" }}>
-      <ResponsiveContainer width="100%" height={220}>
+    <div
+      style={{
+        borderRight: "2px solid #1c1c1e",
+        borderBottom: "2px solid #1c1c1e",
+        height: "100%",
+      }}
+    >
+      <ResponsiveContainer width="100%" height={height}>
         <BarChart
           data={data}
           barGap={2}
