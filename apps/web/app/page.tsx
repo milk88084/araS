@@ -183,6 +183,7 @@ export default function RootPage() {
           alt="araS"
           width={96}
           height={96}
+          priority
           style={{
             borderRadius: 22,
             boxShadow: "0 8px 28px rgba(55,66,84,0.28)",
