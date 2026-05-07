@@ -19,15 +19,33 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("next/image", () => ({
+  default: ({
+    src,
+    alt,
+    width,
+    height,
+    ...props
+  }: {
+    src: string;
+    alt: string;
+    width: number;
+    height: number;
+    [key: string]: unknown;
+  }) => <img src={src} alt={alt} width={width} height={height} {...props} />,
+}));
+
 describe("Landing Page", () => {
-  it("renders app name", () => {
+  it("renders app icon", () => {
     render(<RootPage />);
-    expect(screen.getByRole("heading", { name: "araS" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "araS" })).toBeInTheDocument();
   });
 
   it("renders subtitle", () => {
     render(<RootPage />);
-    expect(screen.getByText("個人財務管理工具")).toBeInTheDocument();
+    expect(
+      screen.getByText("當你了解日常的花費後，接下來好好的管理你的「資產」吧")
+    ).toBeInTheDocument();
   });
 
   it("renders 登入 link pointing to /sign-in", () => {
@@ -44,9 +62,9 @@ describe("Landing Page", () => {
     expect(link).toHaveAttribute("href", "/sign-up");
   });
 
-  it("renders 訪客瀏覽 link pointing to /assets", () => {
+  it("renders 訪客 link pointing to /assets", () => {
     render(<RootPage />);
-    const link = screen.getByRole("link", { name: "訪客瀏覽" });
+    const link = screen.getByRole("link", { name: "訪客" });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/assets");
   });
