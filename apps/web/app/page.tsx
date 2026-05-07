@@ -132,6 +132,8 @@ export default function RootPage() {
           className={entryClasses[i]}
           style={{
             position: "absolute",
+            width: 136,
+            height: 136,
             top: card.top,
             ...(card.left !== undefined ? { left: card.left } : {}),
             ...(card.right !== undefined ? { right: card.right } : {}),
