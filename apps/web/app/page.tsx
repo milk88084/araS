@@ -98,6 +98,14 @@ const depthClass: Record<CardConfig["depth"], string> = {
   far: styles.far ?? "",
 };
 
+const entryClasses = [
+  styles["enter-0"] ?? "",
+  styles["enter-1"] ?? "",
+  styles["enter-2"] ?? "",
+  styles["enter-3"] ?? "",
+  styles["enter-4"] ?? "",
+];
+
 function Sheen() {
   return (
     <span
@@ -118,58 +126,64 @@ export default function RootPage() {
   return (
     <main className="relative overflow-hidden" style={{ height: "100dvh", background: "#f7f7fa" }}>
       {/* Background depth cards */}
-      {CARDS.map((card) => (
+      {CARDS.map((card, i) => (
         <div
           key={card.name}
-          className={depthClass[card.depth]}
-          style={
-            {
-              position: "absolute",
-              width: 136,
-              height: 136,
-              borderRadius: 22,
-              background: card.color,
-              boxShadow: card.boxShadow,
-              filter: `blur(${card.blur})`,
-              opacity: card.opacity,
-              top: card.top,
-              ...(card.left !== undefined ? { left: card.left } : {}),
-              ...(card.right !== undefined ? { right: card.right } : {}),
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              padding: 12,
-              "--dur": card.duration,
-              "--delay": card.delay,
-            } as React.CSSProperties
-          }
+          className={entryClasses[i]}
+          style={{
+            position: "absolute",
+            top: card.top,
+            ...(card.left !== undefined ? { left: card.left } : {}),
+            ...(card.right !== undefined ? { right: card.right } : {}),
+          }}
         >
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              letterSpacing: "0.3px",
-              color: card.textColor,
-              width: "100%",
-              textAlign: "center",
-            }}
+          <div
+            className={depthClass[card.depth]}
+            style={
+              {
+                width: 136,
+                height: 136,
+                borderRadius: 22,
+                background: card.color,
+                boxShadow: card.boxShadow,
+                filter: `blur(${card.blur})`,
+                opacity: card.opacity,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                padding: 12,
+                "--dur": card.duration,
+                "--delay": card.delay,
+              } as React.CSSProperties
+            }
           >
-            {card.name}
-          </span>
-          <span
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              lineHeight: 1.1,
-              color: card.textColor,
-              width: "100%",
-              textAlign: "center",
-            }}
-          >
-            {card.value}
-          </span>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "0.3px",
+                color: card.textColor,
+                width: "100%",
+                textAlign: "center",
+              }}
+            >
+              {card.name}
+            </span>
+            <span
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                lineHeight: 1.1,
+                color: card.textColor,
+                width: "100%",
+                textAlign: "center",
+              }}
+            >
+              {card.value}
+            </span>
+          </div>
         </div>
       ))}
 

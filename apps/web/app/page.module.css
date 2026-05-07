@@ -55,10 +55,55 @@
   animation-fill-mode: both;
 }
 
+@keyframes enterScalePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.enter-0 {
+  animation: enterScalePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.04s;
+}
+
+.enter-1 {
+  animation: enterScalePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.16s;
+}
+
+.enter-2 {
+  animation: enterScalePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.28s;
+}
+
+.enter-3 {
+  animation: enterScalePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.4s;
+}
+
+.enter-4 {
+  animation: enterScalePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: 0.52s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .near,
   .mid,
-  .far {
+  .far,
+  .enter-0,
+  .enter-1,
+  .enter-2,
+  .enter-3,
+  .enter-4 {
     animation: none;
   }
 }
