@@ -18,6 +18,7 @@ interface CardConfig {
   boxShadow: string;
 }
 
+// Decorative placeholder values — not wired to real data
 const CARDS: CardConfig[] = [
   {
     name: "流動資金",
@@ -92,9 +93,9 @@ const CARDS: CardConfig[] = [
 ];
 
 const depthClass: Record<CardConfig["depth"], string> = {
-  near: styles.near!,
-  mid: styles.mid!,
-  far: styles.far!,
+  near: styles.near ?? "",
+  mid: styles.mid ?? "",
+  far: styles.far ?? "",
 };
 
 function Sheen() {
@@ -208,7 +209,7 @@ export default function RootPage() {
         {/* 登入 — dark primary glass */}
         <Link
           href="/sign-in"
-          className="relative flex items-center justify-center overflow-hidden"
+          className="relative flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
           style={{
             minWidth: 200,
             padding: "14px 40px",
@@ -218,6 +219,8 @@ export default function RootPage() {
             color: "#fff",
             background: "linear-gradient(160deg, rgba(55,66,84,0.92) 0%, rgba(30,40,54,0.96) 100%)",
             border: "1.5px solid rgba(90,100,120,0.5)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
             boxShadow: [
               "0 10px 32px rgba(0,0,0,0.18)",
               "0 3px 8px rgba(0,0,0,0.10)",
@@ -233,7 +236,7 @@ export default function RootPage() {
         {/* 註冊 — light glass */}
         <Link
           href="/sign-up"
-          className="relative flex items-center justify-center overflow-hidden"
+          className="relative flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
           style={{
             minWidth: 200,
             padding: "14px 40px",
@@ -244,6 +247,8 @@ export default function RootPage() {
             background:
               "linear-gradient(160deg, rgba(255,255,255,0.96) 0%, rgba(245,245,248,0.88) 40%, rgba(238,238,244,0.82) 65%, rgba(248,248,252,0.90) 100%)",
             border: "1.5px solid rgba(190,190,200,0.70)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
             boxShadow: [
               "0 10px 32px rgba(0,0,0,0.12)",
               "0 3px 8px rgba(0,0,0,0.08)",
@@ -260,7 +265,7 @@ export default function RootPage() {
         {/* 訪客 — ghost */}
         <Link
           href="/assets"
-          className="relative flex items-center justify-center overflow-hidden"
+          className="relative flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
           style={{
             minWidth: 160,
             padding: "11px 40px",
@@ -271,6 +276,8 @@ export default function RootPage() {
             background:
               "linear-gradient(160deg, rgba(255,255,255,0.60) 0%, rgba(245,245,248,0.45) 65%, rgba(238,238,244,0.40) 100%)",
             border: "1.5px solid rgba(180,180,190,0.40)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
             boxShadow: [
               "0 4px 14px rgba(0,0,0,0.07)",
               "inset 0 1px 2px rgba(255,255,255,0.80)",
