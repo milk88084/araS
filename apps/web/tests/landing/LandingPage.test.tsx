@@ -30,14 +30,18 @@ describe("Landing Page", () => {
     expect(screen.getByText("個人財務管理工具")).toBeInTheDocument();
   });
 
-  it("renders 登入 link", () => {
+  it("renders 登入 link pointing to /sign-in", () => {
     render(<RootPage />);
-    expect(screen.getByRole("link", { name: "登入" })).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "登入" });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/sign-in");
   });
 
-  it("renders 註冊 link", () => {
+  it("renders 註冊 link pointing to /sign-up", () => {
     render(<RootPage />);
-    expect(screen.getByRole("link", { name: "註冊" })).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "註冊" });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/sign-up");
   });
 
   it("renders 訪客瀏覽 link pointing to /assets", () => {

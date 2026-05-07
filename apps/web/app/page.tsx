@@ -7,13 +7,13 @@ export default function RootPage() {
       <p className="text-foreground-secondary mt-2 text-sm">個人財務管理工具</p>
       <div className="mt-8 flex w-full max-w-xs flex-col gap-3">
         <Link
-          href="#"
+          href="/sign-in"
           className="bg-primary text-primary-foreground focus-visible:ring-ring w-full cursor-pointer rounded-[--radius] py-3 text-center text-sm font-medium transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           登入
         </Link>
         <Link
-          href="#"
+          href="/sign-up"
           className="border-primary bg-surface text-primary focus-visible:ring-ring w-full cursor-pointer rounded-[--radius] border py-3 text-center text-sm font-medium transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           註冊
