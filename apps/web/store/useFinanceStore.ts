@@ -49,7 +49,8 @@ interface FinanceState {
   loading: boolean;
   error: string | null;
   lastFetchedAt: number | null;
-  fetchAll: () => Promise<void>;
+  isGuest: boolean;
+  fetchAll: (isSignedIn?: boolean) => Promise<void>;
   addEntry: (data: CreateEntry) => Promise<void>;
   updateEntry: (id: string, data: UpdateEntry) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
@@ -69,11 +70,44 @@ export const useFinanceStore = create<FinanceState>()(
       loading: true,
       error: null,
       lastFetchedAt: null,
+      isGuest: false,
 
-      fetchAll: async () => {
-        const { lastFetchedAt } = get();
-        if (lastFetchedAt && Date.now() - lastFetchedAt < 30_000) return;
-        set({ loading: true, error: null });
+      fetchAll: async (isSignedIn?: boolean) => {
+        const { lastFetchedAt, isGuest } = get();
+
+        // Called without arg (from pages) — skip if data already loaded
+        if (isSignedIn === undefined) {
+          if (lastFetchedAt) return;
+          return;
+        }
+
+        // Skip if auth state unchanged and cache is warm (30s)
+        if (lastFetchedAt && Date.now() - lastFetchedAt < 30_000 && isGuest === !isSignedIn) return;
+
+        if (!isSignedIn) {
+          // Guest: load static demo data
+          const demo = (await import("@/data/demo.json")).default;
+          set((s) => {
+            const snapshots =
+              s.valueSnapshots.length === 0 && (demo.entries as unknown[]).length > 0
+                ? [makeSnapshot(demo.entries as Parameters<typeof makeSnapshot>[0])]
+                : s.valueSnapshots;
+            return {
+              entries: demo.entries as typeof s.entries,
+              transactions: demo.transactions as typeof s.transactions,
+              portfolio: demo.portfolio as typeof s.portfolio,
+              valueSnapshots: snapshots,
+              isGuest: true,
+              loading: false,
+              error: null,
+              lastFetchedAt: Date.now(),
+            };
+          });
+          return;
+        }
+
+        // Signed in: original API fetch logic
+        set({ isGuest: false, loading: true, error: null });
         try {
           const [entries, transactions, portfolio] = await Promise.all([
             apiFetch<Entry[]>("/api/entries"),
