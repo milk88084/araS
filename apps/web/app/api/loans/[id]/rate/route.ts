@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const existing = await loansService.findById(id, userId);
     if (!existing) return err("NOT_FOUND", "Loan not found", 404);
     const data = UpdateLoanRateSchema.parse(await req.json());
-    const loan = await loansService.updateRate(id, data);
+    const loan = await loansService.updateRate(id, data, userId);
     return ok(loan);
   } catch (e) {
     return handleError(e);

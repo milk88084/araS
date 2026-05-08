@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useFinanceStore } from "../../../store/useFinanceStore";
 import { PnlChart } from "../../../components/finance/PnlChart";
 import { InvestmentChart } from "../../../components/finance/InvestmentChart";
@@ -121,12 +121,8 @@ function BalanceScale({ assets, liabilities }: { assets: number; liabilities: nu
 }
 
 export default function TransactionsPage() {
-  const { transactions, valueSnapshots, entries, fetchAll } = useFinanceStore();
+  const { transactions, valueSnapshots, entries } = useFinanceStore();
   const [tab, setTab] = useState<Tab>("investment");
-
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
 
   const totalAssets = useMemo(
     () => entries.filter((e) => e.topCategory !== "負債").reduce((s, e) => s + e.value, 0),

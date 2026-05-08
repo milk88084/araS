@@ -25,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const existing = await loansService.findById(id, userId);
     if (!existing) return err("NOT_FOUND", "Loan not found", 404);
     const data = UpdateLoanSchema.parse(await req.json());
-    const loan = await loansService.update(existing.id, data);
+    const loan = await loansService.update(existing.id, data, userId);
     return ok(loan);
   } catch (e) {
     return handleError(e);
@@ -39,7 +39,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const loan = await loansService.findById(id, userId);
     if (!loan) return err("NOT_FOUND", "Loan not found", 404);
-    await loansService.deleteByEntryId(loan.entryId);
+    await loansService.deleteByEntryId(loan.entryId, userId);
     return ok({ deleted: true });
   } catch (e) {
     return handleError(e);

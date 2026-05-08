@@ -98,7 +98,12 @@ export class LoansService {
     return { ...serializeLoan(loanRest), entry: serializeEntry(entry) };
   }
 
-  async update(id: string, data: UpdateLoan) {
+  async update(id: string, data: UpdateLoan, userId: string) {
+    const existing = await prisma.loan.findFirst({
+      where: { id, entry: { userId } },
+    });
+    if (!existing) return null;
+
     return prisma.$transaction(async (tx) => {
       const loan = await tx.loan.update({
         where: { id },
@@ -144,7 +149,11 @@ export class LoansService {
     });
   }
 
-  async updateRate(id: string, data: UpdateLoanRate) {
+  async updateRate(id: string, data: UpdateLoanRate, userId: string) {
+    const existing = await prisma.loan.findFirst({
+      where: { id, entry: { userId } },
+    });
+    if (!existing) return null;
     const loan = await prisma.loan.update({
       where: { id },
       data: { annualInterestRate: data.annualInterestRate },
@@ -208,8 +217,8 @@ export class LoansService {
     return { loan, entryValue: newBalance };
   }
 
-  async deleteByEntryId(entryId: string) {
-    return prisma.entry.delete({ where: { id: entryId } });
+  async deleteByEntryId(entryId: string, userId: string) {
+    return prisma.entry.deleteMany({ where: { id: entryId, userId } });
   }
 }
 

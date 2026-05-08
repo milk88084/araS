@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     loan: {
+      findFirst: vi.fn(),
       update: vi.fn(),
     },
     entry: {
@@ -32,8 +33,8 @@ const MOCK_LOAN = {
   id: "loan-1",
   entryId: "entry-1",
   loanName: "花蓮房貸",
-  totalAmount: 6000000,
-  annualInterestRate: 2.0,
+  totalAmount: { toNumber: () => 6000000 },
+  annualInterestRate: { toNumber: () => 2.0 },
   termMonths: 360,
   startDate: new Date("2026-04-20T00:00:00.000Z"),
   gracePeriodMonths: 0,
@@ -45,17 +46,18 @@ const MOCK_LOAN = {
 describe("LoansService.updateRate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(prisma.loan.findFirst).mockResolvedValue(MOCK_LOAN as never);
     vi.mocked(prisma.loan.update).mockResolvedValue(MOCK_LOAN as never);
   });
 
   it("does not overwrite entry.value when updating the interest rate", async () => {
-    await loansService.updateRate("loan-1", { annualInterestRate: 2.5 });
+    await loansService.updateRate("loan-1", { annualInterestRate: 2.5 }, "user-1");
 
     expect(vi.mocked(prisma.entry.update)).not.toHaveBeenCalled();
   });
 
   it("updates the loan annualInterestRate", async () => {
-    await loansService.updateRate("loan-1", { annualInterestRate: 2.5 });
+    await loansService.updateRate("loan-1", { annualInterestRate: 2.5 }, "user-1");
 
     expect(vi.mocked(prisma.loan.update)).toHaveBeenCalledWith(
       expect.objectContaining({
