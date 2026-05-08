@@ -49,7 +49,8 @@ interface FinanceState {
   loading: boolean;
   error: string | null;
   lastFetchedAt: number | null;
-  fetchAll: () => Promise<void>;
+  isGuest: boolean;
+  fetchAll: (isSignedIn?: boolean) => Promise<void>;
   addEntry: (data: CreateEntry) => Promise<void>;
   updateEntry: (id: string, data: UpdateEntry) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
@@ -69,11 +70,44 @@ export const useFinanceStore = create<FinanceState>()(
       loading: true,
       error: null,
       lastFetchedAt: null,
+      isGuest: false,
 
-      fetchAll: async () => {
-        const { lastFetchedAt } = get();
-        if (lastFetchedAt && Date.now() - lastFetchedAt < 30_000) return;
-        set({ loading: true, error: null });
+      fetchAll: async (isSignedIn?: boolean) => {
+        const { lastFetchedAt, isGuest } = get();
+
+        // Called without arg (from pages) — skip if data already loaded
+        if (isSignedIn === undefined) {
+          if (lastFetchedAt) return;
+          return;
+        }
+
+        // Skip if auth state unchanged and cache is warm (30s)
+        if (lastFetchedAt && Date.now() - lastFetchedAt < 30_000 && isGuest === !isSignedIn) return;
+
+        if (!isSignedIn) {
+          // Guest: load static demo data
+          const demo = (await import("@/data/demo.json")).default;
+          set((s) => {
+            const snapshots =
+              s.valueSnapshots.length === 0 && (demo.entries as unknown[]).length > 0
+                ? [makeSnapshot(demo.entries as Parameters<typeof makeSnapshot>[0])]
+                : s.valueSnapshots;
+            return {
+              entries: demo.entries as typeof s.entries,
+              transactions: demo.transactions as typeof s.transactions,
+              portfolio: demo.portfolio as typeof s.portfolio,
+              valueSnapshots: snapshots,
+              isGuest: true,
+              loading: false,
+              error: null,
+              lastFetchedAt: Date.now(),
+            };
+          });
+          return;
+        }
+
+        // Signed in: original API fetch logic
+        set({ isGuest: false, loading: true, error: null });
         try {
           const [entries, transactions, portfolio] = await Promise.all([
             apiFetch<Entry[]>("/api/entries"),
@@ -100,6 +134,20 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       addEntry: async (data) => {
+        if (get().isGuest) {
+          const fakeEntry = {
+            ...data,
+            id: `demo-${Date.now()}`,
+            stockCode: (data as { stockCode?: string | null }).stockCode ?? null,
+            loan: null,
+            units: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          set((s) => ({ entries: [...s.entries, fakeEntry as (typeof s.entries)[0]] }));
+          return;
+        }
+
         // If an entry with the same name + topCategory + subCategory already exists, merge by summing values
         const existing = get().entries.find(
           (e) =>
@@ -141,6 +189,15 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       updateEntry: async (id, data) => {
+        if (get().isGuest) {
+          set((s) => ({
+            entries: s.entries.map((e) =>
+              e.id === id ? ({ ...e, ...data } as (typeof s.entries)[0]) : e
+            ),
+          }));
+          return;
+        }
+
         const entry = await apiFetch<Entry>(`/api/entries/${id}`, {
           method: "PUT",
           body: JSON.stringify(data),
@@ -155,6 +212,11 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       deleteEntry: async (id) => {
+        if (get().isGuest) {
+          set((s) => ({ entries: s.entries.filter((e) => e.id !== id) }));
+          return;
+        }
+
         await apiFetch(`/api/entries/${id}`, { method: "DELETE" });
         set((s) => {
           const newEntries = s.entries.filter((e) => e.id !== id);
@@ -166,6 +228,17 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       addTransaction: async (data) => {
+        if (get().isGuest) {
+          const fakeTx = {
+            ...data,
+            id: `demo-${Date.now()}`,
+            note: (data as { note?: string | null }).note ?? null,
+            createdAt: new Date().toISOString(),
+          };
+          set((s) => ({ transactions: [...s.transactions, fakeTx as (typeof s.transactions)[0]] }));
+          return;
+        }
+
         const tx = await apiFetch<Transaction>("/api/transactions", {
           method: "POST",
           body: JSON.stringify(data),
@@ -174,11 +247,27 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       deleteTransaction: async (id) => {
+        if (get().isGuest) {
+          set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) }));
+          return;
+        }
+
         await apiFetch(`/api/transactions/${id}`, { method: "DELETE" });
         set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) }));
       },
 
       addPortfolioItem: async (data) => {
+        if (get().isGuest) {
+          const fakeItem = {
+            ...data,
+            id: `demo-${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          set((s) => ({ portfolio: [...s.portfolio, fakeItem as (typeof s.portfolio)[0]] }));
+          return;
+        }
+
         const item = await apiFetch<PortfolioItem>("/api/portfolio", {
           method: "POST",
           body: JSON.stringify(data),
@@ -187,6 +276,11 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       deletePortfolioItem: async (id) => {
+        if (get().isGuest) {
+          set((s) => ({ portfolio: s.portfolio.filter((p) => p.id !== id) }));
+          return;
+        }
+
         await apiFetch(`/api/portfolio/${id}`, { method: "DELETE" });
         set((s) => ({ portfolio: s.portfolio.filter((p) => p.id !== id) }));
       },

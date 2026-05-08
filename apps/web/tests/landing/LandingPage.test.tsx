@@ -3,20 +3,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import RootPage from "../../app/page";
 
-vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    className,
-  }: {
-    href: string;
-    children: React.ReactNode;
-    className?: string;
-  }) => (
-    <a href={href} className={className}>
-      {children}
-    </a>
-  ),
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 vi.mock("next/image", () => ({
@@ -41,31 +29,18 @@ describe("Landing Page", () => {
     expect(screen.getByRole("img", { name: "araS" })).toBeInTheDocument();
   });
 
-  it("renders subtitle", () => {
+  it("renders 登入 button", () => {
     render(<RootPage />);
-    expect(
-      screen.getByText("當你了解日常的花費後，接下來好好的管理你的「資產」吧")
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "登入" })).toBeInTheDocument();
   });
 
-  it("renders 登入 link pointing to /sign-in", () => {
+  it("renders 註冊 button", () => {
     render(<RootPage />);
-    const link = screen.getByRole("link", { name: "登入" });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "/sign-in");
+    expect(screen.getByRole("button", { name: "註冊" })).toBeInTheDocument();
   });
 
-  it("renders 註冊 link pointing to /sign-up", () => {
+  it("renders 訪客 button", () => {
     render(<RootPage />);
-    const link = screen.getByRole("link", { name: "註冊" });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "/sign-up");
-  });
-
-  it("renders 訪客 link pointing to /assets", () => {
-    render(<RootPage />);
-    const link = screen.getByRole("link", { name: "訪客" });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "/assets");
+    expect(screen.getByRole("button", { name: "訪客" })).toBeInTheDocument();
   });
 });

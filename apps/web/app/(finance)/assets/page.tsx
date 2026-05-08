@@ -64,10 +64,6 @@ export default function AssetsPage() {
     : null;
 
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
-
-  useEffect(() => {
     setAddAction(() => () => setShowMenu(true));
     return () => setAddAction(null);
   }, [setAddAction]);

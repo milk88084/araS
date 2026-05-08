@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 import styles from "./page.module.css";
+import { LandingButtons } from "./landing-buttons";
 
 interface CardConfig {
   name: string;
@@ -21,9 +21,9 @@ interface CardConfig {
 // Decorative placeholder values — not wired to real data
 const CARDS: CardConfig[] = [
   {
-    name: "流動資金",
-    color: "#FFFFFF",
-    textColor: "#1c1c1e",
+    name: "投資",
+    color: "#0e1424",
+    textColor: "#ffffff",
     value: "NT$82,500",
     depth: "near",
     blur: "0px",
@@ -49,7 +49,7 @@ const CARDS: CardConfig[] = [
     boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
   },
   {
-    name: "投資",
+    name: "應收帳款",
     color: "#66788E",
     textColor: "#ffffff",
     value: "NT$540,000",
@@ -77,9 +77,9 @@ const CARDS: CardConfig[] = [
     boxShadow: "0 8px 28px rgba(55,66,84,0.30)",
   },
   {
-    name: "應收款",
-    color: "#0e1424",
-    textColor: "#ffffff",
+    name: "流動資金",
+    color: "#FFFFFF",
+    textColor: "#1c1c1e",
     value: "NT$15,000",
     depth: "near",
     blur: "0px",
@@ -105,22 +105,6 @@ const entryClasses = [
   styles["enter-3"] ?? "",
   styles["enter-4"] ?? "",
 ];
-
-function Sheen() {
-  return (
-    <span
-      aria-hidden
-      style={{
-        position: "absolute",
-        inset: 0,
-        borderRadius: "inherit",
-        background:
-          "linear-gradient(128deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.15) 30%, transparent 55%)",
-        pointerEvents: "none",
-      }}
-    />
-  );
-}
 
 export default function RootPage() {
   return (
@@ -163,7 +147,7 @@ export default function RootPage() {
           >
             <span
               style={{
-                fontSize: 12,
+                fontSize: 18,
                 fontWeight: 600,
                 letterSpacing: "0.3px",
                 color: card.textColor,
@@ -205,106 +189,12 @@ export default function RootPage() {
             boxShadow: "0 8px 28px rgba(55,66,84,0.28)",
           }}
         />
-        <p
-          style={{
-            fontSize: 13,
-            color: "#8e8e93",
-            textAlign: "center",
-            maxWidth: 220,
-            lineHeight: 1.5,
-          }}
-        >
-          當你了解日常的花費後，接下來好好的管理你的「資產」吧
+        <p className="w-full text-center text-2xl font-bold whitespace-nowrap text-gray-600 italic">
+          You are stronger than you think.
         </p>
       </div>
 
-      {/* Bottom: 3 separate glass-pill buttons */}
-      <div
-        className="absolute right-0 left-0 flex flex-col items-center"
-        style={{ bottom: 36, gap: 12, zIndex: 20 }}
-      >
-        {/* 登入 — dark primary glass */}
-        <Link
-          href="/sign-in"
-          className="relative flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[#374254]/60 focus-visible:ring-offset-2 focus-visible:outline-none"
-          style={{
-            minWidth: 200,
-            padding: "14px 40px",
-            borderRadius: 100,
-            fontSize: 15,
-            fontWeight: 600,
-            color: "#fff",
-            background: "linear-gradient(160deg, rgba(55,66,84,0.92) 0%, rgba(30,40,54,0.96) 100%)",
-            border: "1.5px solid rgba(90,100,120,0.5)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow: [
-              "0 10px 32px rgba(0,0,0,0.18)",
-              "0 3px 8px rgba(0,0,0,0.10)",
-              "inset 0 2px 3px rgba(255,255,255,0.18)",
-              "inset 0 -1px 2px rgba(0,0,0,0.20)",
-            ].join(", "),
-          }}
-        >
-          <Sheen />
-          登入
-        </Link>
-
-        {/* 註冊 — light glass */}
-        <Link
-          href="/sign-up"
-          className="relative flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[#374254]/60 focus-visible:ring-offset-2 focus-visible:outline-none"
-          style={{
-            minWidth: 200,
-            padding: "14px 40px",
-            borderRadius: 100,
-            fontSize: 15,
-            fontWeight: 600,
-            color: "#374254",
-            background:
-              "linear-gradient(160deg, rgba(255,255,255,0.96) 0%, rgba(245,245,248,0.88) 40%, rgba(238,238,244,0.82) 65%, rgba(248,248,252,0.90) 100%)",
-            border: "1.5px solid rgba(190,190,200,0.70)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow: [
-              "0 10px 32px rgba(0,0,0,0.12)",
-              "0 3px 8px rgba(0,0,0,0.08)",
-              "inset 0 2px 3px rgba(255,255,255,1)",
-              "inset 2px 0 3px rgba(255,255,255,0.80)",
-              "inset 0 -2px 4px rgba(180,180,190,0.25)",
-            ].join(", "),
-          }}
-        >
-          <Sheen />
-          註冊
-        </Link>
-
-        {/* 訪客 — ghost */}
-        <Link
-          href="/assets"
-          className="relative flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[#374254]/60 focus-visible:ring-offset-2 focus-visible:outline-none"
-          style={{
-            minWidth: 160,
-            padding: "11px 40px",
-            borderRadius: 100,
-            fontSize: 14,
-            fontWeight: 500,
-            color: "#8e8e93",
-            background:
-              "linear-gradient(160deg, rgba(255,255,255,0.60) 0%, rgba(245,245,248,0.45) 65%, rgba(238,238,244,0.40) 100%)",
-            border: "1.5px solid rgba(180,180,190,0.40)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            boxShadow: [
-              "0 4px 14px rgba(0,0,0,0.07)",
-              "inset 0 1px 2px rgba(255,255,255,0.80)",
-            ].join(", "),
-          }}
-        >
-          <Sheen />
-          訪客
-        </Link>
-      </div>
+      <LandingButtons />
     </main>
   );
 }
