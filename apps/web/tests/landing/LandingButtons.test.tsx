@@ -60,4 +60,10 @@ describe("LandingButtons", () => {
     fireEvent.click(screen.getAllByRole("button")[1]);
     expect(mockPush).toHaveBeenCalledTimes(1);
   });
+
+  it("shows sr-only loading label on the clicked button", () => {
+    render(<LandingButtons />);
+    fireEvent.click(screen.getByRole("button", { name: "登入" }));
+    expect(screen.getByText("登入中")).toBeInTheDocument();
+  });
 });

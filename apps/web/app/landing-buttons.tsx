@@ -116,7 +116,7 @@ export function LandingButtons() {
             key={btn.href}
             onClick={() => handleClick(btn.href)}
             disabled={isDisabled}
-            className="relative flex items-center justify-center overflow-hidden transition-opacity focus-visible:ring-2 focus-visible:ring-[#374254]/60 focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="relative flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-[#374254]/60 focus-visible:ring-offset-2 focus-visible:outline-none"
             style={{
               ...btn.style,
               opacity: isActive ? 0.7 : isDisabled ? 0.5 : 1,
