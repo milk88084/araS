@@ -57,7 +57,7 @@ describe("LandingButtons", () => {
     render(<LandingButtons />);
     fireEvent.click(screen.getByRole("button", { name: "登入" }));
     // All buttons are now disabled — clicking a second one must not push again
-    fireEvent.click(screen.getAllByRole("button")[1]);
+    fireEvent.click(screen.getAllByRole("button")[1]!);
     expect(mockPush).toHaveBeenCalledTimes(1);
   });
 
