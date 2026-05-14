@@ -70,7 +70,7 @@ export function BankPickerPage({ open, onClose, onSelect, selectedCode }: Props)
               >
                 <div className="relative h-11 w-11">
                   <img
-                    src={`/banks/${bank.code}.png`}
+                    src={`/banks/${bank.code}.svg`}
                     alt={bank.name}
                     className="h-full w-full rounded-xl object-contain"
                     onError={(e) => {

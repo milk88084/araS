@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Check, Info, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Info, RefreshCw, Landmark } from "lucide-react";
 import { Spinner } from "../ui/Spinner";
 import type { LucideIcon } from "lucide-react";
 import { useFinanceStore } from "../../store/useFinanceStore";
@@ -421,7 +421,7 @@ export function AccountFormPage({
                   <Spinner size={20} />
                 </span>
               ) : (
-                <Check size={20} style={{ color: categoryColor }} strokeWidth={2.5} />
+                <Check size={20} style={{ color: "black" }} strokeWidth={2.5} />
               )}
             </button>
           </div>
@@ -640,7 +640,9 @@ export function AccountFormPage({
                         </div>
                       </div>
                     ) : (
-                      <div className="h-8 w-8 rounded-lg bg-[#f2f2f7]" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f2f2f7]">
+                        <Landmark size={16} className="text-[#8e8e93]" />
+                      </div>
                     )}
                     <ChevronRight size={16} className="text-[#c7c7cc]" />
                   </div>
